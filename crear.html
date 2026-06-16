@@ -20,8 +20,8 @@
       <form id="invitationEditorForm" class="editor-form">
         <div class="form-grid">
           <label>
-            ID único de la invitación
-            <input type="text" name="id" required placeholder="cumple-maria-2026">
+            URL personalizada
+            <input type="text" name="slug" required placeholder="lidia32">
           </label>
 
           <label>
@@ -90,6 +90,11 @@
           </label>
         </div>
 
+        <p class="public-url-preview">
+          URL publica:
+          <strong id="createPublicUrl">invitacion.html?id=</strong>
+        </p>
+
         <div class="code-editor-stack">
           <label>
             HTML personalizado
@@ -109,6 +114,7 @@
 
         <div class="button-row">
           <button class="button secondary" id="previewButton" type="button">Vista previa</button>
+          <button class="button secondary" id="copyCreatePublicLinkButton" type="button">Copiar enlace publico</button>
           <button class="button primary" type="submit">Guardar invitación</button>
         </div>
 
@@ -132,3 +138,4 @@
   <script src="assets/js/app.js"></script>
 </body>
 </html>
+

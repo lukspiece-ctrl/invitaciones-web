@@ -76,7 +76,7 @@
   };
 
   function getSlugFromFormData(formData, fallbackId = "") {
-    const explicitSlug = fieldValue(formData, "slug");
+    const explicitSlug = fieldValue(formData, "slug") || fieldValue(formData, "id");
     const source = explicitSlug || [fieldValue(formData, "nombre"), fieldValue(formData, "titulo"), fieldValue(formData, "edad")].filter(Boolean).join(" ") || fallbackId;
     return generateSlug(source);
   }
@@ -88,6 +88,13 @@
     if (document.activeElement === input && typeof cursor === "number") {
       input.setSelectionRange(input.value.length, input.value.length);
     }
+  }
+
+  const DEBUG_INVITATION_FLOW = true;
+
+  function debugInvitationFlow(label, data = {}) {
+    if (!DEBUG_INVITATION_FLOW) return;
+    console.log(`[Invitaciones Debug] ${label}`, data);
   }
 
   function splitDateParts(dateValue) {
@@ -202,11 +209,12 @@
   }
 
   function normalizeInvitation(invitation) {
-    const slug = generateSlug(invitation.slug || invitation.id || invitation.titulo || invitation.nombre || `invitacion-${Date.now()}`);
+    const slug = generateSlug(invitation.slug || invitation.id || invitation.url || invitation.titulo || invitation.nombre || `invitacion-${Date.now()}`);
     return {
       ...invitation,
       id: slug,
       slug,
+      url: slug,
       descripcion: invitation.descripcion || "Invitación personalizada.",
       imagen: invitation.imagen || "assets/img/celebracion.svg",
       sheetEndpoint: invitation.sheetEndpoint || "",
@@ -236,15 +244,16 @@
   }
 
   function getInvitationById(id) {
-    return getAllInvitations().find((invitation) => invitation.id === id || invitation.slug === id);
+    const normalizedId = generateSlug(id);
+    return getAllInvitations().find((invitation) => invitation.id === normalizedId || invitation.slug === normalizedId || invitation.url === normalizedId);
   }
 
   function isSlugAvailable(slug, currentId = null) {
     const normalizedSlug = generateSlug(slug);
     if (!validateSlug(normalizedSlug)) return false;
     return !getAllInvitations().some((invitation) => {
-      const invitationSlug = invitation.slug || invitation.id;
-      return invitationSlug === normalizedSlug && invitation.id !== currentId && invitationSlug !== currentId;
+      const invitationSlug = invitation.slug || invitation.id || invitation.url;
+      return invitationSlug === normalizedSlug && invitation.id !== currentId && invitationSlug !== currentId && invitation.url !== currentId;
     });
   }
 
@@ -252,7 +261,7 @@
     const deletedIds = getDeletedInvitationIds().filter((id) => id !== invitation.id);
     const customInvitations = getCustomInvitations();
     const normalizedInvitation = normalizeInvitation(invitation);
-    const index = customInvitations.findIndex((item) => item.id === normalizedInvitation.id);
+    const index = customInvitations.findIndex((item) => item.id === normalizedInvitation.id || item.slug === normalizedInvitation.id || item.url === normalizedInvitation.id);
 
     if (index >= 0) {
       customInvitations[index] = normalizedInvitation;
@@ -262,11 +271,25 @@
 
     setStoredJson(CUSTOM_INVITATIONS_KEY, customInvitations);
     setStoredJson(DELETED_INVITATIONS_KEY, deletedIds);
+    debugInvitationFlow("saveCustomInvitation", {
+      savedId: normalizedInvitation.id,
+      savedSlug: normalizedInvitation.slug,
+      savedUrl: normalizedInvitation.url,
+      availableIds: getAvailableInvitationIds()
+    });
     return normalizedInvitation;
   }
 
   function removeCustomInvitationById(id) {
-    setStoredJson(CUSTOM_INVITATIONS_KEY, getCustomInvitations().filter((item) => item.id !== id && item.slug !== id));
+    setStoredJson(CUSTOM_INVITATIONS_KEY, getCustomInvitations().filter((item) => item.id !== id && item.slug !== id && item.url !== id));
+  }
+
+  function getAvailableInvitationIds() {
+    return getAllInvitations().map((invitation) => ({
+      id: invitation.id,
+      slug: invitation.slug,
+      url: invitation.url
+    }));
   }
 
   function migrateInvitationStorage(oldId, newId) {
@@ -427,12 +450,23 @@
   function renderInvitation() {
     const id = getInvitationId();
     const invitation = getInvitationById(id);
+    debugInvitationFlow("renderInvitation lookup", {
+      requestedId: id,
+      foundId: invitation?.id,
+      foundSlug: invitation?.slug,
+      foundUrl: invitation?.url,
+      availableIds: getAvailableInvitationIds()
+    });
     const detail = document.getElementById("invitationDetail");
     const form = document.getElementById("rsvpForm");
     const successMessage = document.getElementById("successMessage");
     const floatingRsvpButton = document.getElementById("floatingRsvpButton");
 
     if (!invitation) {
+      console.warn("Invitacion no encontrada", {
+        "ID solicitado": id,
+        "IDs disponibles": getAvailableInvitationIds()
+      });
       detail.innerHTML = `
         <div class="empty-state">
           <h1>Invitación no encontrada</h1>
@@ -637,9 +671,17 @@
         message.textContent = "Ya existe una invitacion con esa URL personalizada.";
         return;
       }
-      saveCustomInvitation(invitation);
+      const savedInvitation = saveCustomInvitation(invitation);
+      debugInvitationFlow("renderCreate submit", {
+        formId: invitation.id,
+        formSlug: invitation.slug,
+        savedId: savedInvitation.id,
+        savedSlug: savedInvitation.slug,
+        savedUrl: savedInvitation.url,
+        publicUrl: getPublicInvitationUrl(savedInvitation.id)
+      });
       message.className = "success-message";
-      message.innerHTML = `Invitacion guardada. <a href="${getPublicInvitationUrl(invitation.slug)}">Ver invitacion</a>`;
+      message.innerHTML = `Invitacion guardada. <a href="${getPublicInvitationUrl(savedInvitation.id)}">Ver invitacion</a>`;
     });
   }
 
@@ -759,6 +801,13 @@
       migrateInvitationStorage(previousId, invitation.id);
     }
     activeEditorInvitation = saveCustomInvitation(invitation);
+    debugInvitationFlow("saveInvitation editor", {
+      previousId,
+      savedId: activeEditorInvitation.id,
+      savedSlug: activeEditorInvitation.slug,
+      savedUrl: activeEditorInvitation.url,
+      publicUrl: getPublicInvitationUrl(activeEditorInvitation.id)
+    });
     document.getElementById("professionalEditorForm").elements.id.value = activeEditorInvitation.id;
     document.getElementById("professionalEditorForm").elements.slug.value = activeEditorInvitation.slug;
     message.className = "success-message";
@@ -791,8 +840,14 @@
   }
 
   function viewAsGuest() {
-    const invitation = getProfessionalFormData();
-    window.open(getPublicInvitationUrl(invitation.slug || invitation.id), "_blank", "noopener");
+    const savedId = activeEditorInvitation?.id;
+    debugInvitationFlow("viewAsGuest", {
+      savedId,
+      savedSlug: activeEditorInvitation?.slug,
+      savedUrl: activeEditorInvitation?.url,
+      publicUrl: getPublicInvitationUrl(savedId)
+    });
+    window.open(getPublicInvitationUrl(savedId), "_blank", "noopener");
   }
 
   function exportInvitation() {
@@ -961,5 +1016,9 @@
   if (page === "create") renderCreate();
   if (page === "editor") renderEditor();
 })();
+
+
+
+
 
 
