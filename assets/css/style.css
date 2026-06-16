@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #f7f3ee;
   --surface: #fffdf9;
   --surface-strong: #ffffff;
@@ -13,7 +13,6 @@
   --radius: 8px;
 }
 
-<<<<<<< HEAD
 *,
 *::before,
 *::after {
@@ -27,12 +26,6 @@ body {
   overflow-x: hidden;
 }
 
-=======
-* {
-  box-sizing: border-box;
-}
-
->>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
 body {
   margin: 0;
   min-height: 100vh;
@@ -42,15 +35,12 @@ body {
   transition: padding-left 220ms ease;
 }
 
-<<<<<<< HEAD
 img,
 video,
 iframe {
   max-width: 100%;
 }
 
-=======
->>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
 body.has-sidebar {
   padding-left: 260px;
 }
@@ -606,7 +596,6 @@ textarea:focus {
   font-weight: 800;
 }
 
-<<<<<<< HEAD
 .field-note,
 .public-url-preview {
   margin: 0;
@@ -620,8 +609,6 @@ textarea:focus {
   overflow-wrap: anywhere;
 }
 
-=======
->>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
 .error-message {
   min-height: 24px;
   margin: 0;
@@ -707,7 +694,6 @@ textarea:focus {
   background: #fff;
 }
 
-<<<<<<< HEAD
 .public-invitation-body {
   margin: 0;
   overflow-x: hidden;
@@ -749,8 +735,6 @@ textarea:focus {
   padding-bottom: 96px;
 }
 
-=======
->>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
 .location-section {
   min-height: 75vh;
   display: grid;
@@ -1410,13 +1394,10 @@ th {
 }
 
 @media (max-width: 640px) {
-<<<<<<< HEAD
   body {
     font-size: 16px;
   }
 
-=======
->>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
   .container {
     width: min(100% - 24px, 1120px);
   }
@@ -1446,7 +1427,6 @@ th {
     padding: 22px;
   }
 
-<<<<<<< HEAD
   .public-invitation-page,
   .public-invitation-wrapper,
   .public-invitation-frame {
@@ -1485,17 +1465,11 @@ th {
     width: 100%;
   }
 
-=======
->>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
   .floating-rsvp-button {
     right: 12px;
     bottom: 12px;
     left: 12px;
-<<<<<<< HEAD
     width: calc(100% - 24px);
-=======
-    width: auto;
->>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
   }
 
   .section-heading,
@@ -1549,18 +1523,9 @@ th {
   }
 
   .preview-device.mobile-preview {
-<<<<<<< HEAD
     width: min(390px, 100%);
     height: 640px;
   }
 }
 
 
-=======
-    width: min(360px, 100%);
-    height: 640px;
-  }
-}
-
-
->>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
