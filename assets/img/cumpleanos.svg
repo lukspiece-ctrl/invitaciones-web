@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 675" role="img" aria-label="Decoración de cumpleaños">
+  <rect width="900" height="675" fill="#f6e8df"/>
+  <circle cx="720" cy="110" r="120" fill="#3f7d72" opacity=".9"/>
+  <circle cx="170" cy="175" r="92" fill="#c4765c"/>
+  <rect x="250" y="310" width="400" height="180" rx="18" fill="#fffdf9"/>
+  <rect x="285" y="265" width="330" height="70" rx="16" fill="#f0b88d"/>
+  <rect x="415" y="185" width="35" height="85" rx="10" fill="#3f7d72"/>
+  <rect x="470" y="185" width="35" height="85" rx="10" fill="#c4765c"/>
+  <path d="M432 175c-18-26 0-50 0-50s18 24 0 50zM488 175c-18-26 0-50 0-50s18 24 0 50z" fill="#f5c84c"/>
+  <path d="M110 520c155-95 300-95 455 0 83 51 158 64 245 33" fill="none" stroke="#26302f" stroke-width="18" stroke-linecap="round" opacity=".18"/>
+</svg>

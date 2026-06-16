@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitaciones Web</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body data-page="home">
+  <header class="site-header">
+    <section class="hero container">
+      <div class="hero-content">
+        <p class="eyebrow">Eventos digitales</p>
+        <h1>Invitaciones listas para compartir</h1>
+        <p>Administra cumpleaños, bodas, bautismos y eventos desde una estructura simple para GitHub Pages.</p>
+      </div>
+    </section>
+  </header>
+
+  <main class="container main-section">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Disponibles</p>
+        <h2>Invitaciones</h2>
+      </div>
+      <span id="invitationCount" class="counter">0 eventos</span>
+    </div>
+    <section id="invitationList" class="cards-grid" aria-live="polite"></section>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
