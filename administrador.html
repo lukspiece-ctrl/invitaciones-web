@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body data-page="admin">
+
+  <main class="container admin-layout">
+
+    <!-- LOGIN -->
+
+    <section id="adminGate" class="auth-panel">
+
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Acceso privado</p>
+          <h1>Panel de confirmaciones</h1>
+        </div>
+      </div>
+
+      <form id="adminLoginForm" class="rsvp-form">
+
+        <label>
+          Contraseña de administrador
+          <input
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            required>
+        </label>
+
+        <button type="submit" class="button primary">
+          Ingresar
+        </button>
+
+        <p id="loginMessage" class="error-message" role="alert"></p>
+
+      </form>
+
+    </section>
+
+    <!-- PANEL ADMIN -->
+
+    <section
+      id="adminContent"
+      class="admin-content hidden"
+      aria-live="polite">
+
+      <div class="section-heading">
+
+        <div>
+          <p class="eyebrow">Resumen</p>
+
+          <h1 id="adminEventTitle">
+            Confirmaciones
+          </h1>
+
+          <p class="public-url-preview">
+            URL pública:
+            <strong id="adminPublicUrl">
+              invitacion.html?id=
+            </strong>
+          </p>
+        </div>
+
+        <div class="button-row">
+
+          <a
+            href="index.html"
+            class="button secondary">
+            ← Volver al inicio
+          </a>
+
+          <a
+            id="editInvitationLink"
+            class="button secondary"
+            href="editor.html">
+            Editar invitación
+          </a>
+
+          <a
+            id="viewInvitationLink"
+            class="button secondary"
+            href="#"
+            target="_blank">
+            Ver invitación
+          </a>
+
+          <button
+            id="copyPublicLinkButton"
+            class="button secondary"
+            type="button">
+            Copiar enlace público
+          </button>
+
+          <button
+            id="clearConfirmations"
+            class="button danger"
+            type="button">
+            Borrar pruebas
+          </button>
+
+        </div>
+      </div>
+
+      <!-- ESTADÍSTICAS -->
+
+      <div class="stats-grid">
+
+        <article class="stat-card">
+          <span>Total de respuestas</span>
+          <strong id="totalResponses">0</strong>
+        </article>
+
+        <article class="stat-card">
+          <span>Total que asisten</span>
+          <strong id="totalAttending">0</strong>
+        </article>
+
+        <article class="stat-card">
+          <span>Total de acompañantes</span>
+          <strong id="totalGuests">0</strong>
+        </article>
+
+      </div>
+
+      <!-- TABLA -->
+
+      <div class="table-wrap">
+
+        <table>
+
+          <thead>
+            <tr>
+              <th scope="col">Nombre</th>
+              <th scope="col">Teléfono</th>
+              <th scope="col">Asiste</th>
+              <th scope="col">Acompañantes</th>
+              <th scope="col">Mensaje</th>
+              <th scope="col">Fecha</th>
+            </tr>
+          </thead>
+
+          <tbody id="confirmationsTable"></tbody>
+
+        </table>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+
+</body>
+</html>

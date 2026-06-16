@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitación</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body data-page="invitation" class="public-invitation-body">
+  <main class="public-invitation-page">
+
+    <section class="public-invitation-wrapper" aria-label="Invitación">
+      <div id="invitationDetail" class="public-invitation-frame" aria-live="polite">
+        <noscript>
+          Para ver esta invitación necesitás activar JavaScript en tu navegador.
+        </noscript>
+      </div>
+    </section>
+
+    <section id="rsvp-section" class="public-rsvp-section landing-section rsvp-landing-section" aria-labelledby="confirmTitle">
+      <div class="form-panel premium-rsvp-card">
+        <div class="panel-heading centered-heading">
+          <div>
+            <p class="eyebrow">RSVP</p>
+            <h2 id="confirmTitle">Confirmar asistencia</h2>
+          </div>
+        </div>
+
+        <form id="rsvpForm" class="rsvp-form">
+          <label>
+            Nombre
+            <input type="text" name="nombre" autocomplete="name" required>
+          </label>
+
+          <label>
+            Teléfono
+            <input type="tel" name="telefono" autocomplete="tel" required>
+          </label>
+
+          <fieldset>
+            <legend>¿Asiste?</legend>
+            <div class="radio-row">
+              <label>
+                <input type="radio" name="asiste" value="Sí" checked>
+                Sí
+              </label>
+
+              <label>
+                <input type="radio" name="asiste" value="No">
+                No
+              </label>
+            </div>
+          </fieldset>
+
+          <label>
+            Cantidad de acompañantes
+            <input type="number" name="acompanantes" min="0" value="0">
+          </label>
+
+          <label>
+            Mensaje
+            <textarea name="mensaje" rows="4" placeholder="Dejá un mensaje para los anfitriones"></textarea>
+          </label>
+
+          <button type="submit" class="button primary">
+            Confirmar asistencia
+          </button>
+
+          <p id="successMessage" class="success-message" role="status"></p>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <button id="floatingRsvpButton" class="floating-rsvp-button" type="button" aria-controls="rsvp-section">
+    Confirmar asistencia
+  </button>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

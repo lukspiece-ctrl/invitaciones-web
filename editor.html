@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editor profesional</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body data-page="editor" class="pro-editor-body">
+  <main class="professional-editor">
+
+    <aside class="builder-panel">
+      <div class="builder-scroll">
+
+        <div class="builder-header">
+          <div>
+            <p class="eyebrow">Editor profesional</p>
+            <h1>Diseñar invitación</h1>
+          </div>
+
+          <p class="security-note">
+            Esta aplicación utiliza almacenamiento local. Para producción se recomienda Supabase o una base de datos.
+          </p>
+
+          <a class="button secondary" href="index.html">Volver al inicio</a>
+        </div>
+
+        <div class="editor-tabs" role="tablist" aria-label="Secciones del editor">
+          <button class="tab-button active" type="button" data-tab="general">General</button>
+          <button class="tab-button" type="button" data-tab="design">Diseño</button>
+          <button class="tab-button" type="button" data-tab="cover">Portada</button>
+          <button class="tab-button" type="button" data-tab="animation">Animaciones</button>
+          <button class="tab-button" type="button" data-tab="typography">Tipografía</button>
+          <button class="tab-button" type="button" data-tab="code">Código</button>
+        </div>
+
+        <form id="professionalEditorForm" class="professional-form">
+          <input type="hidden" name="id">
+          <input type="hidden" name="uploadedImage">
+
+          <section class="tab-panel active" data-panel="general">
+            <label>
+              Nombre del evento
+              <input type="text" name="titulo" required>
+            </label>
+
+            <label>
+              URL personalizada
+              <input type="text" name="slug" required placeholder="lidia32">
+            </label>
+
+            <p class="field-note full-field">
+              Cambiar la URL puede romper el enlace anterior compartido.
+            </p>
+
+            <p class="public-url-preview full-field">
+              URL pública:
+              <strong id="editorPublicUrl">invitacion.html?id=</strong>
+            </p>
+
+            <label>
+              Nombre
+              <input type="text" name="nombre" placeholder="Lidia Benítez">
+            </label>
+
+            <label>
+              Edad
+              <input type="number" name="edad" min="0" placeholder="32">
+            </label>
+
+            <label>
+              Nombre del anfitrión
+              <input type="text" name="anfitrion" required>
+            </label>
+
+            <label>
+              Tipo de evento
+              <input type="text" name="tipo" required placeholder="Cumpleaños, boda, bautismo">
+            </label>
+
+            <div class="form-grid compact">
+              <label>
+                Fecha
+                <input type="date" name="fecha" required>
+              </label>
+
+              <label>
+                Hora
+                <input type="time" name="hora" required>
+              </label>
+            </div>
+
+            <label>
+              Lugar
+              <input type="text" name="lugar" required>
+            </label>
+
+            <label>
+              Dirección
+              <input type="text" name="direccion" required>
+            </label>
+
+            <label>
+              Teléfono
+              <input type="tel" name="telefono" placeholder="+595...">
+            </label>
+
+            <label>
+              Google Maps
+              <input type="url" name="googleMapsUrl" placeholder="https://maps.google.com/...">
+            </label>
+
+            <label>
+              Contraseña admin
+              <input type="text" name="adminPassword" required>
+            </label>
+
+            <label>
+              Descripción
+              <input type="text" name="descripcion">
+            </label>
+          </section>
+
+          <section class="tab-panel" data-panel="design">
+            <div class="color-grid">
+              <label>
+                Color principal
+                <input type="color" name="primaryColor" value="#3f7d72">
+              </label>
+
+              <label>
+                Color secundario
+                <input type="color" name="secondaryColor" value="#c4765c">
+              </label>
+
+              <label>
+                Color texto
+                <input type="color" name="textColor" value="#26302f">
+              </label>
+
+              <label>
+                Color botones
+                <input type="color" name="buttonColor" value="#3f7d72">
+              </label>
+            </div>
+          </section>
+
+          <section class="tab-panel" data-panel="cover">
+            <label>
+              Imagen principal
+              <input type="url" name="mainImage" placeholder="https://...">
+            </label>
+
+            <label>
+              Imagen de fondo
+              <input type="url" name="backgroundImage" placeholder="https://...">
+            </label>
+
+            <label>
+              Subir imagen local
+              <input type="file" id="localImageInput" accept="image/*">
+            </label>
+
+            <label>
+              URL de imagen
+              <input type="url" name="imageUrl" placeholder="https://...">
+            </label>
+          </section>
+
+          <section class="tab-panel" data-panel="animation">
+            <label>
+              Animación
+              <select name="animation">
+                <option value="none">Sin animación</option>
+                <option value="shine">Brillo deslizante</option>
+                <option value="flowers">Flores flotantes</option>
+                <option value="confetti">Confeti</option>
+                <option value="sparkles">Destellos suaves</option>
+              </select>
+            </label>
+          </section>
+
+          <section class="tab-panel" data-panel="typography">
+            <label>
+              Tipografía
+              <select name="typography">
+                <option value="classic">Elegante clásica</option>
+                <option value="modern">Moderna</option>
+                <option value="handwritten">Manuscrita</option>
+                <option value="luxury">Lujo</option>
+                <option value="minimal">Minimalista</option>
+              </select>
+            </label>
+          </section>
+
+          <section class="tab-panel" data-panel="code">
+            <div class="code-subtabs" role="tablist" aria-label="Editores de código">
+              <button class="code-tab-button active" type="button" data-code-tab="html">HTML</button>
+              <button class="code-tab-button" type="button" data-code-tab="css">CSS</button>
+              <button class="code-tab-button" type="button" data-code-tab="js">JS</button>
+            </div>
+
+            <div class="code-panel active" data-code-panel="html">
+              <div class="code-toolbar">
+                <span>HTML: usa variables como {{nombre}}, {{edad}}, {{fecha}}</span>
+                <button class="button secondary compact-button" type="button" data-copy-code="customHtml">Copiar código</button>
+              </div>
+
+              <textarea class="code-textarea advanced-html" name="customHtml" rows="20" placeholder="<h1>{{nombre}}</h1>"></textarea>
+            </div>
+
+            <div class="code-panel" data-code-panel="css">
+              <div class="code-toolbar">
+                <span>CSS: también acepta variables</span>
+                <button class="button secondary compact-button" type="button" data-copy-code="customCss">Copiar código</button>
+              </div>
+
+              <textarea class="code-textarea advanced-html" name="customCss" rows="20" placeholder=".hero { color: #333; }"></textarea>
+            </div>
+
+            <div class="code-panel" data-code-panel="js">
+              <div class="code-toolbar">
+                <span>JS: scripts sin etiqueta &lt;script&gt;</span>
+                <button class="button secondary compact-button" type="button" data-copy-code="customJs">Copiar código</button>
+              </div>
+
+              <textarea class="code-textarea advanced-html" name="customJs" rows="20" placeholder="console.log('{{nombre}}');"></textarea>
+            </div>
+
+            <button class="button secondary" id="restoreTemplateButton" type="button">
+              Restaurar plantilla original
+            </button>
+          </section>
+        </form>
+      </div>
+
+      <div class="editor-actions">
+        <button class="button primary" id="saveInvitationButton" type="submit" form="professionalEditorForm">
+          Guardar cambios
+        </button>
+
+        <button class="button secondary" id="viewAsGuestButton" type="button">
+          Ver como invitado
+        </button>
+
+        <button class="button secondary" id="copyEditorPublicLinkButton" type="button">
+          Copiar enlace público
+        </button>
+
+        <button class="button secondary" id="duplicateInvitationButton" type="button">
+          Duplicar
+        </button>
+
+        <button class="button secondary" id="exportInvitationButton" type="button">
+          Exportar JSON
+        </button>
+
+        <label class="button secondary import-button">
+          Importar JSON
+          <input id="importInvitationInput" type="file" accept="application/json,.json">
+        </label>
+
+        <button class="button danger" id="deleteInvitationButton" type="button">
+          Eliminar invitación
+        </button>
+
+        <p id="editorMessage" class="success-message" role="status"></p>
+      </div>
+    </aside>
+
+    <section class="live-preview-panel">
+      <div class="preview-toolbar">
+        <div>
+          <p class="eyebrow">Vista previa en vivo</p>
+          <h2 id="previewTitle">Invitación</h2>
+        </div>
+
+        <div class="preview-actions">
+          <button class="button secondary" type="button" data-zoom="50">50%</button>
+          <button class="button secondary active" type="button" data-zoom="75">75%</button>
+          <button class="button secondary" type="button" data-zoom="100">100%</button>
+          <button id="mobilePreviewButton" class="button secondary" type="button">Vista móvil</button>
+          <button id="desktopPreviewButton" class="button secondary active" type="button">Vista desktop</button>
+        </div>
+      </div>
+
+      <div class="preview-stage">
+        <div id="previewDevice" class="preview-device preview-zoom-75 desktop-preview">
+          <iframe id="livePreviewFrame" class="live-preview-frame" title="Vista previa de invitación"></iframe>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

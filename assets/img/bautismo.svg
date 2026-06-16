@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 675" role="img" aria-label="Bautismo familiar">
+  <rect width="900" height="675" fill="#f8f2e9"/>
+  <circle cx="450" cy="240" r="145" fill="#dbeee9"/>
+  <path d="M450 140v220M365 245h170" stroke="#3f7d72" stroke-width="34" stroke-linecap="round"/>
+  <path d="M180 525c72-110 155-110 227 0 72-110 155-110 227 0 30-46 61-73 95-83" fill="none" stroke="#c4765c" stroke-width="22" stroke-linecap="round"/>
+  <circle cx="190" cy="165" r="82" fill="#c4765c" opacity=".32"/>
+  <circle cx="735" cy="155" r="96" fill="#3f7d72" opacity=".24"/>
+</svg>
