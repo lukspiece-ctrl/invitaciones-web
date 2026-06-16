@@ -4,9 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crear invitación</title>
+<<<<<<< HEAD
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
+=======
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
 <body data-page="create">
   <main class="container editor-layout create-layout">
     <section class="editor-panel">
@@ -19,6 +24,7 @@
 
       <form id="invitationEditorForm" class="editor-form">
         <div class="form-grid">
+<<<<<<< HEAD
           <label>
             ID único de la invitación
             <input type="text" name="id" required placeholder="cumple-maria-2026">
@@ -103,6 +109,32 @@
 
           <label>
             JavaScript personalizado
+=======
+          <label>ID único de la invitación <input type="text" name="id" required placeholder="cumple-maria-2026"></label>
+          <label>Título <input type="text" name="titulo" required></label>
+          <label>Nombre <input type="text" name="nombre" placeholder="Lidia Benítez"></label>
+          <label>Edad <input type="number" name="edad" min="0" placeholder="32"></label>
+          <label>Tipo de evento <input type="text" name="tipo" required placeholder="Boda, cumpleaños, bautismo"></label>
+          <label>Anfitrión <input type="text" name="anfitrion" required></label>
+          <label>Fecha <input type="date" name="fecha" required></label>
+          <label>Hora <input type="time" name="hora" required></label>
+          <label>Lugar <input type="text" name="lugar" required></label>
+          <label>Dirección <input type="text" name="direccion" required></label>
+          <label>Teléfono <input type="tel" name="telefono" placeholder="+595..."></label>
+          <label>Link de Google Maps <input type="url" name="googleMapsUrl" placeholder="https://maps.google.com/..."></label>
+          <label>Contraseña de administrador <input type="text" name="adminPassword" required></label>
+          <label class="full-field">Descripción <input type="text" name="descripcion" placeholder="Texto corto para la invitación"></label>
+        </div>
+
+        <div class="code-editor-stack">
+          <label>HTML personalizado
+            <textarea class="code-textarea" name="customHtml" rows="16" required placeholder="<h1>{{nombre}}</h1>"></textarea>
+          </label>
+          <label>CSS personalizado
+            <textarea class="code-textarea" name="customCss" rows="12" placeholder=".titulo { color: #333; }"></textarea>
+          </label>
+          <label>JavaScript personalizado
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
             <textarea class="code-textarea" name="customJs" rows="10" placeholder="console.log('{{nombre}}');"></textarea>
           </label>
         </div>
@@ -111,7 +143,10 @@
           <button class="button secondary" id="previewButton" type="button">Vista previa</button>
           <button class="button primary" type="submit">Guardar invitación</button>
         </div>
+<<<<<<< HEAD
 
+=======
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
         <p id="editorMessage" class="success-message" role="status"></p>
       </form>
     </section>
@@ -123,12 +158,22 @@
           <h2>Vista previa</h2>
         </div>
       </div>
+<<<<<<< HEAD
 
+=======
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
       <iframe id="customPreview" class="custom-preview-iframe" title="Vista previa de invitación"></iframe>
     </aside>
   </main>
 
+<<<<<<< HEAD
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
 </body>
 </html>
+=======
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/app.js"></script>
+</body>
+</html>
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a

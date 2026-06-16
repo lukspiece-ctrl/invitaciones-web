@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Editor profesional</title>
+<<<<<<< HEAD
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
@@ -13,17 +14,29 @@
     <aside class="builder-panel">
       <div class="builder-scroll">
 
+=======
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body data-page="editor" class="pro-editor-body">
+  <main class="professional-editor">
+    <aside class="builder-panel">
+      <div class="builder-scroll">
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
         <div class="builder-header">
           <div>
             <p class="eyebrow">Editor profesional</p>
             <h1>Diseñar invitación</h1>
           </div>
+<<<<<<< HEAD
 
           <p class="security-note">
             Esta aplicación utiliza almacenamiento local. Para producción se recomienda Supabase o una base de datos.
           </p>
 
           <a class="button secondary" href="index.html">Volver al inicio</a>
+=======
+          <p class="security-note">Esta aplicación utiliza almacenamiento local. Para producción se recomienda Supabase o base de datos.</p>
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
         </div>
 
         <div class="editor-tabs" role="tablist" aria-label="Secciones del editor">
@@ -40,6 +53,7 @@
           <input type="hidden" name="uploadedImage">
 
           <section class="tab-panel active" data-panel="general">
+<<<<<<< HEAD
             <label>
               Nombre del evento
               <input type="text" name="titulo" required>
@@ -120,10 +134,28 @@
               Descripción
               <input type="text" name="descripcion">
             </label>
+=======
+            <label>Nombre del evento <input type="text" name="titulo" required></label>
+            <label>Nombre <input type="text" name="nombre"></label>
+            <label>Edad <input type="number" name="edad" min="0"></label>
+            <label>Nombre del anfitrión <input type="text" name="anfitrion" required></label>
+            <label>Tipo de evento <input type="text" name="tipo" required></label>
+            <div class="form-grid compact">
+              <label>Fecha <input type="date" name="fecha" required></label>
+              <label>Hora <input type="time" name="hora" required></label>
+            </div>
+            <label>Lugar <input type="text" name="lugar" required></label>
+            <label>Dirección <input type="text" name="direccion" required></label>
+            <label>Teléfono <input type="tel" name="telefono"></label>
+            <label>Google Maps <input type="url" name="googleMapsUrl" placeholder="https://maps.google.com/..."></label>
+            <label>Contraseña admin <input type="text" name="adminPassword" required></label>
+            <label>Descripción <input type="text" name="descripcion"></label>
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
           </section>
 
           <section class="tab-panel" data-panel="design">
             <div class="color-grid">
+<<<<<<< HEAD
               <label>
                 Color principal
                 <input type="color" name="primaryColor" value="#3f7d72">
@@ -143,10 +175,17 @@
                 Color botones
                 <input type="color" name="buttonColor" value="#3f7d72">
               </label>
+=======
+              <label>Color principal <input type="color" name="primaryColor" value="#3f7d72"></label>
+              <label>Color secundario <input type="color" name="secondaryColor" value="#c4765c"></label>
+              <label>Color texto <input type="color" name="textColor" value="#26302f"></label>
+              <label>Color botones <input type="color" name="buttonColor" value="#3f7d72"></label>
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
             </div>
           </section>
 
           <section class="tab-panel" data-panel="cover">
+<<<<<<< HEAD
             <label>
               Imagen principal
               <input type="url" name="mainImage" placeholder="https://...">
@@ -171,6 +210,16 @@
           <section class="tab-panel" data-panel="animation">
             <label>
               Animación
+=======
+            <label>Imagen principal <input type="url" name="mainImage" placeholder="https://..."></label>
+            <label>Imagen de fondo <input type="url" name="backgroundImage" placeholder="https://..."></label>
+            <label>Subir imagen local <input type="file" id="localImageInput" accept="image/*"></label>
+            <label>URL de imagen <input type="url" name="imageUrl" placeholder="https://..."></label>
+          </section>
+
+          <section class="tab-panel" data-panel="animation">
+            <label>Animación
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
               <select name="animation">
                 <option value="none">Sin animación</option>
                 <option value="shine">Brillo deslizante</option>
@@ -182,8 +231,12 @@
           </section>
 
           <section class="tab-panel" data-panel="typography">
+<<<<<<< HEAD
             <label>
               Tipografía
+=======
+            <label>Tipografía
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
               <select name="typography">
                 <option value="classic">Elegante clásica</option>
                 <option value="modern">Moderna</option>
@@ -200,6 +253,7 @@
               <button class="code-tab-button" type="button" data-code-tab="css">CSS</button>
               <button class="code-tab-button" type="button" data-code-tab="js">JS</button>
             </div>
+<<<<<<< HEAD
 
             <div class="code-panel active" data-code-panel="html">
               <div class="code-toolbar">
@@ -231,10 +285,26 @@
             <button class="button secondary" id="restoreTemplateButton" type="button">
               Restaurar plantilla original
             </button>
+=======
+            <div class="code-panel active" data-code-panel="html">
+              <div class="code-toolbar"><span>HTML: usa variables como {{nombre}}, {{edad}}, {{fecha}}</span><button class="button secondary compact-button" type="button" data-copy-code="customHtml">Copiar código</button></div>
+              <textarea class="code-textarea advanced-html" name="customHtml" rows="20" placeholder="<h1>{{nombre}}</h1>"></textarea>
+            </div>
+            <div class="code-panel" data-code-panel="css">
+              <div class="code-toolbar"><span>CSS: también acepta variables</span><button class="button secondary compact-button" type="button" data-copy-code="customCss">Copiar código</button></div>
+              <textarea class="code-textarea advanced-html" name="customCss" rows="20" placeholder=".hero { color: #333; }"></textarea>
+            </div>
+            <div class="code-panel" data-code-panel="js">
+              <div class="code-toolbar"><span>JS: scripts sin etiqueta &lt;script&gt;</span><button class="button secondary compact-button" type="button" data-copy-code="customJs">Copiar código</button></div>
+              <textarea class="code-textarea advanced-html" name="customJs" rows="20" placeholder="console.log('{{nombre}}');"></textarea>
+            </div>
+            <button class="button secondary" id="restoreTemplateButton" type="button">Restaurar plantilla original</button>
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
           </section>
         </form>
       </div>
 
+<<<<<<< HEAD
       <div class="editor-actions">
         <button class="button primary" id="saveInvitationButton" type="submit" form="professionalEditorForm">
           Guardar cambios
@@ -265,6 +335,14 @@
           Eliminar invitación
         </button>
 
+=======
+      <div class="editor-actions" form="professionalEditorForm">
+        <button class="button primary" id="saveInvitationButton" type="submit" form="professionalEditorForm">Guardar cambios</button>
+        <button class="button secondary" id="duplicateInvitationButton" type="button">Duplicar</button>
+        <button class="button secondary" id="exportInvitationButton" type="button">Exportar JSON</button>
+        <label class="button secondary import-button">Importar JSON <input id="importInvitationInput" type="file" accept="application/json,.json"></label>
+        <button class="button danger" id="deleteInvitationButton" type="button">Eliminar invitación</button>
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
         <p id="editorMessage" class="success-message" role="status"></p>
       </div>
     </aside>
@@ -275,22 +353,33 @@
           <p class="eyebrow">Vista previa en vivo</p>
           <h2 id="previewTitle">Invitación</h2>
         </div>
+<<<<<<< HEAD
 
+=======
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
         <div class="preview-actions">
           <button class="button secondary" type="button" data-zoom="50">50%</button>
           <button class="button secondary active" type="button" data-zoom="75">75%</button>
           <button class="button secondary" type="button" data-zoom="100">100%</button>
+<<<<<<< HEAD
           <button id="mobilePreviewButton" class="button secondary" type="button">Vista móvil</button>
           <button id="desktopPreviewButton" class="button secondary active" type="button">Vista desktop</button>
         </div>
       </div>
 
+=======
+          <button id="mobilePreviewButton" class="button secondary" type="button">Móvil</button>
+          <button id="desktopPreviewButton" class="button secondary active" type="button">Desktop</button>
+        </div>
+      </div>
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
       <div class="preview-stage">
         <div id="previewDevice" class="preview-device preview-zoom-75 desktop-preview">
           <iframe id="livePreviewFrame" class="live-preview-frame" title="Vista previa de invitación"></iframe>
         </div>
       </div>
     </section>
+<<<<<<< HEAD
 
   </main>
 
@@ -298,3 +387,11 @@
   <script src="assets/js/app.js"></script>
 </body>
 </html>
+=======
+  </main>
+
+  <script src="../assets/js/data.js"></script>
+  <script src="../assets/js/app.js"></script>
+</body>
+</html>
+>>>>>>> a1016e2aba7c08a6fb852fbfa4ce6fa84e50954a
