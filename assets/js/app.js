@@ -43,12 +43,20 @@
     return /^[a-z0-9-]+$/.test(slug) && !slug.startsWith("-") && !slug.endsWith("-");
   }
 
-  function getPublicInvitationUrl(slug) {
-    return buildUrl("invitacion.html", { id: slug });
+  function getInvitationPublicSlug(invitationOrSlug) {
+    if (typeof invitationOrSlug === "string") return generateSlug(invitationOrSlug);
+    const invitation = invitationOrSlug || {};
+    return generateSlug(invitation.slug || invitation.id || invitation.url || "");
   }
 
-  async function copyPublicUrl(slug) {
-    const url = getPublicInvitationUrl(slug);
+  function getPublicInvitationUrl(invitationOrSlug) {
+    const slug = getInvitationPublicSlug(invitationOrSlug);
+    const path = window.location.pathname.replace(/[^/]*$/, "invitacion.html");
+    return `${window.location.origin}${path}?id=${encodeURIComponent(slug)}`;
+  }
+
+  async function copyPublicUrl(invitationOrSlug) {
+    const url = getPublicInvitationUrl(invitationOrSlug);
     await navigator.clipboard.writeText(url);
     return url;
   }
@@ -344,10 +352,12 @@
   }
 
   function normalizeInvitation(invitation) {
-    const slug = generateSlug(invitation.slug || invitation.id || invitation.url || invitation.titulo || invitation.nombre || `invitacion-${Date.now()}`);
+    const sourceId = invitation.id || invitation.internalId || `inv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const id = generateSlug(sourceId) || normalizeId(`inv-${Date.now()}`);
+    const slug = generateSlug(invitation.slug || invitation.url || invitation.titulo || invitation.nombre || id) || id;
     return {
       ...invitation,
-      id: slug,
+      id,
       slug,
       url: slug,
       descripcion: invitation.descripcion || "Invitación personalizada.",
@@ -360,24 +370,32 @@
       customHtml: invitation.customHtml || "",
       customCss: invitation.customCss || "",
       customJs: invitation.customJs || "",
-      visualCanvasImage: invitation.visualCanvasImage || localStorage.getItem(getVisualCanvasImageKey(slug)) || localStorage.getItem(getVisualCanvasImageKey(invitation.slug)) || localStorage.getItem(getVisualCanvasImageKey(invitation.id)) || "",
-      visualTemplateImage: invitation.visualTemplateImage || localStorage.getItem(getVisualTemplateImageKey(slug)) || localStorage.getItem(getVisualTemplateImageKey(invitation.slug)) || localStorage.getItem(getVisualTemplateImageKey(invitation.id)) || "",
-      birthdayPhotoImage: invitation.birthdayPhotoImage || localStorage.getItem(getBirthdayPhotoImageKey(slug)) || localStorage.getItem(getBirthdayPhotoImageKey(invitation.slug)) || localStorage.getItem(getBirthdayPhotoImageKey(invitation.id)) || "",
-      visualDesign: invitation.visualDesign || getStoredJson(getVisualDesignKey(slug), null) || getStoredJson(getVisualDesignKey(invitation.slug), null) || getStoredJson(getVisualDesignKey(invitation.id), null),
+      visualCanvasImage: invitation.visualCanvasImage || localStorage.getItem(getVisualCanvasImageKey(id)) || localStorage.getItem(getVisualCanvasImageKey(slug)) || localStorage.getItem(getVisualCanvasImageKey(invitation.slug)) || localStorage.getItem(getVisualCanvasImageKey(invitation.id)) || "",
+      visualTemplateImage: invitation.visualTemplateImage || localStorage.getItem(getVisualTemplateImageKey(id)) || localStorage.getItem(getVisualTemplateImageKey(slug)) || localStorage.getItem(getVisualTemplateImageKey(invitation.slug)) || localStorage.getItem(getVisualTemplateImageKey(invitation.id)) || "",
+      birthdayPhotoImage: invitation.birthdayPhotoImage || localStorage.getItem(getBirthdayPhotoImageKey(id)) || localStorage.getItem(getBirthdayPhotoImageKey(slug)) || localStorage.getItem(getBirthdayPhotoImageKey(invitation.slug)) || localStorage.getItem(getBirthdayPhotoImageKey(invitation.id)) || "",
+      visualDesign: invitation.visualDesign || getStoredJson(getVisualDesignKey(id), null) || getStoredJson(getVisualDesignKey(slug), null) || getStoredJson(getVisualDesignKey(invitation.slug), null) || getStoredJson(getVisualDesignKey(invitation.id), null),
       isCustom: true
     };
   }
 
   function getAllInvitations() {
     const deletedIds = new Set(getDeletedInvitationIds());
-    const customInvitations = getCustomInvitations().filter((invitation) => !deletedIds.has(invitation.id));
-    const customById = new Map(customInvitations.map((invitation) => [invitation.id, normalizeInvitation(invitation)]));
+    const customInvitations = getCustomInvitations().filter((invitation) => {
+      const normalized = normalizeInvitation(invitation);
+      return !deletedIds.has(normalized.id) && !deletedIds.has(normalized.slug);
+    });
+    const normalizedCustomInvitations = customInvitations.map(normalizeInvitation);
+    const customByIdOrSlug = new Map();
+    normalizedCustomInvitations.forEach((invitation) => {
+      customByIdOrSlug.set(invitation.id, invitation);
+      customByIdOrSlug.set(invitation.slug, invitation);
+    });
     const baseInvitations = invitaciones
-      .filter((invitation) => !deletedIds.has(invitation.id))
-      .map((invitation) => customById.get(invitation.id) || normalizeInvitation(invitation));
-    const newCustomInvitations = customInvitations
-      .filter((invitation) => !invitaciones.some((base) => base.id === invitation.id))
-      .map(normalizeInvitation);
+      .map(normalizeInvitation)
+      .filter((invitation) => !deletedIds.has(invitation.id) && !deletedIds.has(invitation.slug))
+      .map((invitation) => customByIdOrSlug.get(invitation.id) || customByIdOrSlug.get(invitation.slug) || invitation);
+    const baseKeys = new Set(baseInvitations.flatMap((invitation) => [invitation.id, invitation.slug]));
+    const newCustomInvitations = normalizedCustomInvitations.filter((invitation) => !baseKeys.has(invitation.id) && !baseKeys.has(invitation.slug));
 
     return [...baseInvitations, ...newCustomInvitations];
   }
@@ -395,9 +413,14 @@
     ].filter(Boolean).map((value) => generateSlug(value))));
   }
 
+  function findInvitationByIdOrSlug(value) {
+    const normalizedValue = generateSlug(value);
+    if (!normalizedValue) return null;
+    return getAllInvitations().find((invitation) => invitation.id === normalizedValue || invitation.slug === normalizedValue) || null;
+  }
+
   function getInvitationById(id) {
-    const normalizedId = generateSlug(id);
-    return getAllInvitations().find((invitation) => getInvitationLookupCandidates(normalizedId, invitation).includes(normalizedId));
+    return findInvitationByIdOrSlug(id);
   }
 
   function getStoredVisualAssetByCandidates(keyFactory, candidates, parseJson = false) {
@@ -452,7 +475,7 @@
   function getStoredVisualAssetByPrefix(prefix, candidates = [], parseJson = false) {
     const keys = Object.keys(localStorage).filter((key) => key.startsWith(prefix));
     const normalizedCandidates = candidates.map((candidate) => generateSlug(candidate));
-    const matchingKey = keys.find((key) => normalizedCandidates.some((candidate) => key === `${prefix}${candidate}` || key.includes(candidate))) || keys[0];
+    const matchingKey = keys.find((key) => normalizedCandidates.some((candidate) => key === `${prefix}${candidate}` || key.includes(candidate)));
     if (!matchingKey) return parseJson ? null : "";
     const rawValue = localStorage.getItem(matchingKey);
     if (!rawValue) return parseJson ? null : "";
@@ -626,43 +649,32 @@
 
   function isSlugAvailable(slug, currentId = null) {
     const normalizedSlug = generateSlug(slug);
+    const normalizedCurrentId = generateSlug(currentId || "");
     if (!validateSlug(normalizedSlug)) return false;
     return !getAllInvitations().some((invitation) => {
-      const invitationSlug = invitation.slug || invitation.id || invitation.url;
-      return invitationSlug === normalizedSlug && invitation.id !== currentId && invitationSlug !== currentId && invitation.url !== currentId;
+      return invitation.slug === normalizedSlug && invitation.id !== normalizedCurrentId;
     });
   }
 
   function saveCustomInvitation(invitation) {
-    const deletedIds = getDeletedInvitationIds().filter((id) => id !== invitation.id);
-    const customInvitations = getCustomInvitations();
     const normalizedInvitation = normalizeInvitation(invitation);
+    const deletedIds = getDeletedInvitationIds().filter((id) => id !== normalizedInvitation.id && id !== normalizedInvitation.slug);
+    const customInvitations = getCustomInvitations();
 
-    if (normalizedInvitation.visualCanvasImage) {
-      persistVisualCanvasImage(normalizedInvitation, normalizedInvitation.visualCanvasImage);
-    }
+    if (normalizedInvitation.visualCanvasImage) persistVisualCanvasImage(normalizedInvitation, normalizedInvitation.visualCanvasImage);
+    if (normalizedInvitation.visualDesign) persistVisualDesign(normalizedInvitation, normalizedInvitation.visualDesign);
+    if (normalizedInvitation.visualTemplateImage) persistVisualTemplateImage(normalizedInvitation, normalizedInvitation.visualTemplateImage);
+    if (normalizedInvitation.birthdayPhotoImage) persistBirthdayPhotoImage(normalizedInvitation, normalizedInvitation.birthdayPhotoImage);
 
-    if (normalizedInvitation.visualDesign) {
-      persistVisualDesign(normalizedInvitation, normalizedInvitation.visualDesign);
-    }
-
-    if (normalizedInvitation.visualTemplateImage) {
-      persistVisualTemplateImage(normalizedInvitation, normalizedInvitation.visualTemplateImage);
-    }
-
-    if (normalizedInvitation.birthdayPhotoImage) {
-      persistBirthdayPhotoImage(normalizedInvitation, normalizedInvitation.birthdayPhotoImage);
-    }
-
-    const storedInvitation = {
-      ...normalizedInvitation
-    };
-    const index = customInvitations.findIndex((item) => item.id === normalizedInvitation.id || item.slug === normalizedInvitation.id || item.url === normalizedInvitation.id);
+    const index = customInvitations.findIndex((item) => {
+      const normalizedItem = normalizeInvitation(item);
+      return normalizedItem.id === normalizedInvitation.id || normalizedItem.slug === normalizedInvitation.slug;
+    });
 
     if (index >= 0) {
-      customInvitations[index] = storedInvitation;
+      customInvitations[index] = normalizedInvitation;
     } else {
-      customInvitations.push(storedInvitation);
+      customInvitations.push(normalizedInvitation);
     }
 
     setCustomInvitationsWithVisualFallback(customInvitations);
@@ -671,6 +683,7 @@
       savedId: normalizedInvitation.id,
       savedSlug: normalizedInvitation.slug,
       savedUrl: normalizedInvitation.url,
+      publicUrl: getPublicInvitationUrl(normalizedInvitation),
       availableIds: getAvailableInvitationIds()
     });
     return normalizedInvitation;
@@ -752,8 +765,8 @@
     const normalizedInvitation = normalizeInvitation(invitation);
     const customInvitations = getCustomInvitations();
     const index = customInvitations.findIndex((item) => {
-      const aliases = getInvitationStorageAliases(item);
-      return item.id === normalizedInvitation.id || item.slug === normalizedInvitation.slug || item.url === normalizedInvitation.url || aliases.includes(normalizedInvitation.id);
+      const normalizedItem = normalizeInvitation(item);
+      return normalizedItem.id === normalizedInvitation.id || normalizedItem.slug === normalizedInvitation.slug;
     });
     if (index >= 0) {
       customInvitations[index] = normalizedInvitation;
@@ -995,7 +1008,7 @@
   let activeShareInvitation = null;
 
   function getAbsolutePublicInvitationUrl(slug) {
-    return new URL(getPublicInvitationUrl(slug), window.location.href).href;
+    return getPublicInvitationUrl(slug);
   }
 
   function getShareInvitation(invitation = null) {
@@ -1003,11 +1016,11 @@
   }
 
   function getShareSlug(invitation = null) {
-    return getShareInvitation(invitation).id;
+    return getInvitationPublicSlug(getShareInvitation(invitation));
   }
 
   function getShareUrl(invitation = null) {
-    return getAbsolutePublicInvitationUrl(getShareSlug(invitation));
+    return getPublicInvitationUrl(getShareInvitation(invitation));
   }
 
   async function copyPublicLink(invitation = null) {
@@ -1018,7 +1031,7 @@
   }
 
   function openInvitation(invitation = null) {
-    window.open(getPublicInvitationUrl(getShareSlug(invitation)), "_blank", "noopener");
+    window.open(getShareUrl(invitation), "_blank", "noopener");
   }
 
   function shareWhatsApp(invitation = null) {
@@ -1088,7 +1101,7 @@
     const item = getShareInvitation(invitation);
     activeShareInvitation = item;
     const absoluteUrl = getShareUrl(item);
-    const relativeUrl = getPublicInvitationUrl(item.id);
+    const relativeUrl = buildUrl("invitacion.html", { id: getInvitationPublicSlug(item) });
     const setText = (selector, value) => {
       section.querySelectorAll(selector).forEach((node) => { node.textContent = value; });
     };
@@ -1231,7 +1244,7 @@
             <p>${escapeHtml(date)}</p>
             <div class="home-card-actions">
               <a class="button primary" href="${buildUrl("editor.html", { id: invitation.id })}">Editar</a>
-              <a class="button secondary" href="${buildUrl("invitacion.html", { id: invitation.id })}">Ver</a>
+              <a class="button secondary" href="${getPublicInvitationUrl(invitation)}">Ver</a>
               <button class="button danger" type="button" data-home-action="delete" data-invitation-id="${escapeHtml(invitation.id)}">Eliminar</button>
             </div>
           </div>
@@ -1257,6 +1270,7 @@
 
   async function renderInvitation() {
     const id = getInvitationId();
+    console.log("URL id recibido:", id);
     console.log("ID URL:", id);
     console.log("Todas las claves localStorage:", Object.keys(localStorage));
 
@@ -1369,11 +1383,11 @@
     document.title = `Admin | ${invitation.titulo}`;
     document.getElementById("adminEventTitle").textContent = invitation.titulo;
     document.getElementById("editInvitationLink").href = buildUrl("editor.html", { id: invitation.id });
-    const publicLink = getPublicInvitationUrl(invitation.slug || invitation.id);
+    const publicLink = getPublicInvitationUrl(invitation);
     const copyPublicLinkButton = document.getElementById("copyPublicLinkButton");
     document.getElementById("adminPublicUrl").textContent = publicLink;
     const viewInvitationLink = document.getElementById("viewInvitationLink");
-    if (viewInvitationLink) viewInvitationLink.href = getPublicInvitationUrl(invitation.id);
+    if (viewInvitationLink) viewInvitationLink.href = getPublicInvitationUrl(invitation);
     initShareSection(invitation);
 
     document.getElementById("adminLoginForm").addEventListener("submit", (event) => {
@@ -1398,7 +1412,7 @@
 
     copyPublicLinkButton.addEventListener("click", async () => {
       try {
-        await copyPublicUrl(invitation.slug || invitation.id);
+        await copyPublicUrl(invitation);
         copyPublicLinkButton.textContent = "Link copiado";
       } catch (error) {
         copyPublicLinkButton.textContent = publicLink;
@@ -1504,34 +1518,38 @@
         savedId: savedInvitation.id,
         savedSlug: savedInvitation.slug,
         savedUrl: savedInvitation.url,
-        publicUrl: getPublicInvitationUrl(savedInvitation.id)
+        publicUrl: getPublicInvitationUrl(savedInvitation)
       });
       message.className = "success-message";
-      message.innerHTML = `Invitacion guardada. <a href="${getPublicInvitationUrl(savedInvitation.id)}">Ver invitacion</a>`;
+      message.innerHTML = `Invitacion guardada. <a href="${getPublicInvitationUrl(savedInvitation)}">Ver invitacion</a>`;
     });
   }
 
   function getProfessionalFormData() {
     const form = document.getElementById("professionalEditorForm");
     const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    const slug = getSlugFromFormData(formData, activeEditorInvitation.id);
+    const fields = Object.fromEntries(formData.entries());
+    const existingInvitation = activeEditorInvitation || {};
+    const id = existingInvitation.id || generateSlug(fields.id || `inv-${Date.now()}`);
+    const slug = generateSlug(fields.slug || existingInvitation.slug || fields.titulo || id);
     const design = {
-      primaryColor: fieldValue(formData, "primaryColor", DEFAULT_DESIGN.primaryColor),
-      secondaryColor: fieldValue(formData, "secondaryColor", DEFAULT_DESIGN.secondaryColor),
-      textColor: fieldValue(formData, "textColor", DEFAULT_DESIGN.textColor),
-      buttonColor: fieldValue(formData, "buttonColor", DEFAULT_DESIGN.buttonColor),
+      primaryColor: fields.primaryColor || DEFAULT_DESIGN.primaryColor,
+      secondaryColor: fields.secondaryColor || DEFAULT_DESIGN.secondaryColor,
+      textColor: fields.textColor || DEFAULT_DESIGN.textColor,
+      buttonColor: fields.buttonColor || DEFAULT_DESIGN.buttonColor,
       mainImage: fieldValue(formData, "mainImage"),
       backgroundImage: fieldValue(formData, "backgroundImage"),
       uploadedImage: fieldValue(formData, "uploadedImage"),
       imageUrl: fieldValue(formData, "imageUrl"),
-      animation: fieldValue(formData, "animation", "none"),
-      typography: fieldValue(formData, "typography", "classic")
+      animation: fields.animation || "none",
+      typography: fields.typography || "classic"
     };
     const invitation = normalizeInvitation({
-      ...activeEditorInvitation,
-      id: slug,
+      ...existingInvitation,
+      ...fields,
+      id,
       slug,
+      url: slug,
       titulo: fieldValue(formData, "titulo"),
       tipo: fieldValue(formData, "tipo"),
       anfitrion: fieldValue(formData, "anfitrion"),
@@ -1548,13 +1566,14 @@
       customHtml: rawFieldValue(formData, "customHtml"),
       customCss: rawFieldValue(formData, "customCss"),
       customJs: rawFieldValue(formData, "customJs"),
-      visualCanvasImage: activeEditorInvitation.visualCanvasImage || localStorage.getItem(getVisualCanvasImageKey(slug)) || localStorage.getItem(getVisualCanvasImageKey(activeEditorInvitation.slug)) || localStorage.getItem(getVisualCanvasImageKey(activeEditorInvitation.id)) || "",
-      visualTemplateImage: activeEditorInvitation.visualTemplateImage || localStorage.getItem(getVisualTemplateImageKey(slug)) || localStorage.getItem(getVisualTemplateImageKey(activeEditorInvitation.slug)) || localStorage.getItem(getVisualTemplateImageKey(activeEditorInvitation.id)) || "",
-      birthdayPhotoImage: activeEditorInvitation.birthdayPhotoImage || localStorage.getItem(getBirthdayPhotoImageKey(slug)) || localStorage.getItem(getBirthdayPhotoImageKey(activeEditorInvitation.slug)) || localStorage.getItem(getBirthdayPhotoImageKey(activeEditorInvitation.id)) || "",
-      visualDesign: activeEditorInvitation.visualDesign || getStoredJson(getVisualDesignKey(slug), null) || getStoredJson(getVisualDesignKey(activeEditorInvitation.slug), null) || getStoredJson(getVisualDesignKey(activeEditorInvitation.id), null),
+      visualCanvasImage: getVisualCanvasImageForInvitation(existingInvitation),
+      visualTemplateImage: getVisualTemplateImageForInvitation(existingInvitation),
+      birthdayPhotoImage: getBirthdayPhotoImageForInvitation(existingInvitation),
+      visualDesign: getVisualDesignForInvitation(existingInvitation),
       design
     });
     invitation.imagen = getInvitationImage(invitation);
+    console.log("Campos guardados:", fields);
     return invitation;
   }
 
@@ -1597,8 +1616,8 @@
     const output = document.getElementById("editorPublicUrl");
     const form = document.getElementById("professionalEditorForm");
     if (!output || !form) return;
-    const slug = getSlugFromFormData(new FormData(form), activeEditorInvitation?.id || "");
-    output.textContent = slug ? getPublicInvitationUrl(slug) : "invitacion.html?id=";
+    const slug = getSlugFromFormData(new FormData(form), activeEditorInvitation?.slug || activeEditorInvitation?.id || "");
+    output.textContent = slug ? getPublicInvitationUrl({ ...(activeEditorInvitation || {}), slug }) : "invitacion.html?id=";
   }
 
   function updatePreview() {
@@ -1642,33 +1661,32 @@
     const message = document.getElementById("editorMessage");
 
     try {
-      if (visualEditorCanvas) saveVisualDesign();
-      const previousId = activeEditorInvitation.id;
+      const existingInvitation = activeEditorInvitation;
       const invitation = attachVisualDesignToInvitation(getProfessionalFormData());
       if (!validateSlug(invitation.slug)) {
         message.className = "error-message";
         message.textContent = "La URL personalizada solo puede usar letras minusculas, numeros y guiones.";
         return;
       }
-      if (!isSlugAvailable(invitation.slug, previousId)) {
+      if (!isSlugAvailable(invitation.slug, existingInvitation?.id)) {
         message.className = "error-message";
         message.textContent = "Ya existe una invitacion con esa URL personalizada.";
         return;
       }
-      if (previousId !== invitation.id) {
-        removeCustomInvitationById(previousId);
-        if (invitaciones.some((base) => base.id === previousId || base.slug === previousId)) {
-          setStoredJson(DELETED_INVITATIONS_KEY, Array.from(new Set([...getDeletedInvitationIds(), previousId])));
-        }
-        migrateInvitationStorage(previousId, invitation.id);
-      }
-      activeEditorInvitation = saveCustomInvitation(invitation);
+      activeEditorInvitation = saveCustomInvitation({
+        ...existingInvitation,
+        ...invitation,
+        id: existingInvitation?.id || invitation.id,
+        slug: invitation.slug
+      });
+      const publicUrl = getPublicInvitationUrl(activeEditorInvitation);
+      console.log("Invitación final guardada:", activeEditorInvitation);
+      console.log("URL pública:", publicUrl);
       debugInvitationFlow("saveInvitation editor", {
-        previousId,
         savedId: activeEditorInvitation.id,
         savedSlug: activeEditorInvitation.slug,
         savedUrl: activeEditorInvitation.url,
-        publicUrl: getPublicInvitationUrl(activeEditorInvitation.id)
+        publicUrl
       });
       document.getElementById("professionalEditorForm").elements.id.value = activeEditorInvitation.id;
       document.getElementById("professionalEditorForm").elements.slug.value = activeEditorInvitation.slug;
@@ -1713,18 +1731,33 @@
   }
 
   function viewAsGuest() {
-    if (visualEditorCanvas) saveVisualDesign();
     if (activeEditorInvitation) {
-      activeEditorInvitation = saveCustomInvitation(attachVisualDesignToInvitation(getProfessionalFormData()));
+      const invitation = attachVisualDesignToInvitation(getProfessionalFormData());
+      const message = document.getElementById("editorMessage");
+      if (!validateSlug(invitation.slug) || !isSlugAvailable(invitation.slug, activeEditorInvitation.id)) {
+        if (message) {
+          message.className = "error-message";
+          message.textContent = "Revisa la URL personalizada antes de abrir la invitacion.";
+        }
+        return;
+      }
+      activeEditorInvitation = saveCustomInvitation({
+        ...activeEditorInvitation,
+        ...invitation,
+        id: activeEditorInvitation.id,
+        slug: invitation.slug
+      });
     }
     const savedId = activeEditorInvitation?.id;
+    const publicUrl = getPublicInvitationUrl(activeEditorInvitation || savedId);
     debugInvitationFlow("viewAsGuest", {
       savedId,
       savedSlug: activeEditorInvitation?.slug,
       savedUrl: activeEditorInvitation?.url,
-      publicUrl: getPublicInvitationUrl(savedId)
+      publicUrl
     });
-    window.open(getPublicInvitationUrl(savedId), "_blank", "noopener");
+    console.log("URL pública:", publicUrl);
+    window.open(publicUrl, "_blank", "noopener");
   }
 
   function exportInvitation() {
@@ -2140,7 +2173,10 @@
   window.scheduleEditorAutosave = scheduleEditorAutosave;
 
   function renderEditor() {
-    const invitation = getInvitationById(getInvitationId());
+    const urlId = new URLSearchParams(location.search).get("id");
+    console.log("URL id recibido:", urlId);
+    const invitation = findInvitationByIdOrSlug(urlId);
+    console.log("Invitación editando:", invitation);
     const form = document.getElementById("professionalEditorForm");
 
     if (!invitation) {
@@ -2208,10 +2244,10 @@
       const button = event.currentTarget;
       const invitation = getProfessionalFormData();
       try {
-        await copyPublicUrl(invitation.slug || invitation.id);
+        await copyPublicUrl(invitation);
         button.textContent = "Enlace copiado";
       } catch (error) {
-        button.textContent = getPublicInvitationUrl(invitation.slug || invitation.id);
+        button.textContent = getPublicInvitationUrl(invitation);
       }
       setTimeout(() => {
         button.textContent = "Copiar enlace publico";
