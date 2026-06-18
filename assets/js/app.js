@@ -75,18 +75,64 @@
     }
   };
 
-  const setStoredJson = (key, value) => {
-    localStorage.setItem(key, JSON.stringify(value));
-  };
+  const MAX_LOCAL_STORAGE_IMAGE_BYTES = 100 * 1024;
+  let storageWarningTimer = null;
 
-  const trySetStorageValue = (key, value) => {
+  function showStorageWarning(message = "El almacenamiento del navegador esta lleno. Se guardaron solo datos livianos e imagenes por URL.") {
+    let warning = document.getElementById("storageWarning");
+    if (!warning) {
+      warning = document.createElement("div");
+      warning.id = "storageWarning";
+      warning.className = "storage-warning";
+      warning.setAttribute("role", "status");
+      document.body.appendChild(warning);
+    }
+    warning.textContent = message;
+    warning.classList.add("visible");
+    clearTimeout(storageWarningTimer);
+    storageWarningTimer = setTimeout(() => warning.classList.remove("visible"), 5200);
+  }
+
+  function safeSetItem(key, value) {
     try {
       localStorage.setItem(key, value);
       return true;
-    } catch (error) {
-      console.warn(`No se pudo guardar ${key} en localStorage`, error);
+    } catch (err) {
+      console.warn("Storage lleno", key, err);
+      showStorageWarning();
       return false;
     }
+  }
+
+  function getStorageBytes(value) {
+    return new Blob([String(value || "")]).size;
+  }
+
+  function isDataImage(value) {
+    return typeof value === "string" && value.startsWith("data:image/");
+  }
+
+  function isLargeDataImage(value) {
+    return isDataImage(value) && getStorageBytes(value) > MAX_LOCAL_STORAGE_IMAGE_BYTES;
+  }
+
+  function keepStorageSafeImage(value) {
+    if (!value) return "";
+    if (isDataImage(value)) return "";
+    return value;
+  }
+
+  const setStoredJson = (key, value) => {
+    return safeSetItem(key, JSON.stringify(value));
+  };
+
+  const trySetStorageValue = (key, value) => {
+    if (isLargeDataImage(value)) {
+      console.warn("Imagen omitida por superar 100 KB", key);
+      showStorageWarning("La imagen supera 100 KB. Usa una URL externa o exporta HTML para compartirla.");
+      return false;
+    }
+    return safeSetItem(key, value);
   };
   function compressImageDataUrl(dataUrl, callback, options = {}) {
     if (!dataUrl || !String(dataUrl).startsWith("data:image/") || String(dataUrl).startsWith("data:image/svg")) {
@@ -249,7 +295,7 @@
 
     collapseButton.addEventListener("click", () => {
       document.body.classList.toggle("sidebar-collapsed");
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, document.body.classList.contains("sidebar-collapsed"));
+      safeSetItem(SIDEBAR_COLLAPSED_KEY, document.body.classList.contains("sidebar-collapsed"));
     });
 
     const closeMobile = () => document.body.classList.remove("sidebar-mobile-open");
@@ -305,6 +351,24 @@
   function getBirthdayPhotoImageKey(invitationId) {
     return `birthdayPhotoImage_${invitationId || "draft"}`;
   }
+
+  function cleanupLegacyImageStorage() {
+    const prefixes = [
+      "visualCanvasImage_",
+      "visualCanvasTemplate_",
+      "visualTemplateImage_",
+      "birthdayPhotoImage_"
+    ];
+    Object.keys(localStorage).forEach((key) => {
+      if (prefixes.some((prefix) => key.startsWith(prefix))) {
+        localStorage.removeItem(key);
+      }
+    });
+    const storedInvitations = getStoredJson(CUSTOM_INVITATIONS_KEY, []);
+    if (Array.isArray(storedInvitations) && storedInvitations.length) {
+      setCustomInvitationsWithVisualFallback(storedInvitations);
+    }
+  }
   function getInvitationStorageAliases(invitation = {}) {
     return Array.from(new Set([
       invitation.id,
@@ -317,14 +381,33 @@
 
   function persistVisualCanvasImage(invitation, visualCanvasImage) {
     if (!invitation || !visualCanvasImage) return;
-    getInvitationStorageAliases(invitation).forEach((alias) => {
-      trySetStorageValue(getVisualCanvasImageKey(alias), visualCanvasImage);
-    });
+    if (isLargeDataImage(visualCanvasImage)) showStorageWarning("La imagen final supera 100 KB y no se guardo en el navegador. Usa Exportar HTML publico.");
+  }
+
+  function stripDataImagesFromVisualDesign(visualDesign) {
+    if (!visualDesign) return null;
+    try {
+      const design = typeof visualDesign === "string" ? JSON.parse(visualDesign) : JSON.parse(JSON.stringify(visualDesign));
+      const stripObject = (value) => {
+        if (!value || typeof value !== "object") return;
+        Object.keys(value).forEach((key) => {
+          if (typeof value[key] === "string" && isLargeDataImage(value[key])) value[key] = "";
+          else stripObject(value[key]);
+        });
+      };
+      stripObject(design);
+      return design;
+    } catch (error) {
+      return null;
+    }
   }
 
   function persistVisualDesign(invitation, visualDesign) {
     if (!invitation || !visualDesign) return;
-    const serializedDesign = typeof visualDesign === "string" ? visualDesign : JSON.stringify(visualDesign);
+    const safeDesign = stripDataImagesFromVisualDesign(visualDesign);
+    if (!safeDesign) return;
+    const serializedDesign = JSON.stringify(safeDesign);
+    if (getStorageBytes(serializedDesign) > MAX_LOCAL_STORAGE_IMAGE_BYTES) return;
     getInvitationStorageAliases(invitation).forEach((alias) => {
       trySetStorageValue(getVisualDesignKey(alias), serializedDesign);
     });
@@ -332,6 +415,10 @@
 
   function persistVisualTemplateImage(invitation, visualTemplateImage) {
     if (!invitation || !visualTemplateImage) return;
+    if (isDataImage(visualTemplateImage)) {
+      if (isLargeDataImage(visualTemplateImage)) showStorageWarning("La plantilla supera 100 KB y no se guardo en el navegador. Usa una URL de imagen.");
+      return;
+    }
     getInvitationStorageAliases(invitation).forEach((alias) => {
       trySetStorageValue(getVisualTemplateImageKey(alias), visualTemplateImage);
     });
@@ -339,18 +426,52 @@
 
   function persistBirthdayPhotoImage(invitation, birthdayPhotoImage) {
     if (!invitation || !birthdayPhotoImage) return;
+    if (isDataImage(birthdayPhotoImage)) {
+      if (isLargeDataImage(birthdayPhotoImage)) showStorageWarning("La foto supera 100 KB y no se guardo en el navegador. Usa una URL de imagen.");
+      return;
+    }
     getInvitationStorageAliases(invitation).forEach((alias) => {
       trySetStorageValue(getBirthdayPhotoImageKey(alias), birthdayPhotoImage);
     });
   }
 
+  function sanitizeDesignForStorage(design = {}) {
+    return {
+      ...design,
+      mainImage: keepStorageSafeImage(design.mainImage),
+      backgroundImage: keepStorageSafeImage(design.backgroundImage),
+      imageUrl: keepStorageSafeImage(design.imageUrl),
+      uploadedImage: keepStorageSafeImage(design.uploadedImage)
+    };
+  }
+
+  function sanitizeInvitationForStorage(invitation = {}) {
+    const safeDesign = sanitizeDesignForStorage(invitation.design || {});
+    return {
+      ...invitation,
+      design: safeDesign,
+      imagen: keepStorageSafeImage(invitation.imagen),
+      visualCanvasImage: keepStorageSafeImage(invitation.visualCanvasImage),
+      visualTemplateImage: keepStorageSafeImage(invitation.visualTemplateImage),
+      birthdayPhotoImage: keepStorageSafeImage(invitation.birthdayPhotoImage),
+      visualDesign: stripDataImagesFromVisualDesign(invitation.visualDesign)
+    };
+  }
+
   function setCustomInvitationsWithVisualFallback(invitations) {
-    try {
-      setStoredJson(CUSTOM_INVITATIONS_KEY, invitations);
-      return;
-    } catch (error) {
-      console.warn("No se pudo guardar custom_invitations con imagenes embebidas. Se guardan respaldos visuales separados.", error);
-      setStoredJson(CUSTOM_INVITATIONS_KEY, invitations.map((item) => ({ ...item, visualCanvasImage: "", visualDesign: null, visualTemplateImage: "", birthdayPhotoImage: "" })));
+    const safeInvitations = invitations.map(sanitizeInvitationForStorage);
+    const saved = setStoredJson(CUSTOM_INVITATIONS_KEY, safeInvitations);
+    if (!saved) {
+      const tinyInvitations = safeInvitations.map((item) => ({
+        ...item,
+        design: sanitizeDesignForStorage(item.design || {}),
+        imagen: "",
+        visualCanvasImage: "",
+        visualDesign: null,
+        visualTemplateImage: "",
+        birthdayPhotoImage: ""
+      }));
+      setStoredJson(CUSTOM_INVITATIONS_KEY, tinyInvitations);
     }
   }
 
@@ -374,10 +495,10 @@
       customHtml: invitation.customHtml || "",
       customCss: invitation.customCss || "",
       customJs: invitation.customJs || "",
-      visualCanvasImage: invitation.visualCanvasImage || localStorage.getItem(getVisualCanvasImageKey(id)) || localStorage.getItem(getVisualCanvasImageKey(slug)) || localStorage.getItem(getVisualCanvasImageKey(invitation.slug)) || localStorage.getItem(getVisualCanvasImageKey(invitation.id)) || "",
-      visualTemplateImage: invitation.visualTemplateImage || localStorage.getItem(getVisualTemplateImageKey(id)) || localStorage.getItem(getVisualTemplateImageKey(slug)) || localStorage.getItem(getVisualTemplateImageKey(invitation.slug)) || localStorage.getItem(getVisualTemplateImageKey(invitation.id)) || "",
-      birthdayPhotoImage: invitation.birthdayPhotoImage || localStorage.getItem(getBirthdayPhotoImageKey(id)) || localStorage.getItem(getBirthdayPhotoImageKey(slug)) || localStorage.getItem(getBirthdayPhotoImageKey(invitation.slug)) || localStorage.getItem(getBirthdayPhotoImageKey(invitation.id)) || "",
-      visualDesign: invitation.visualDesign || getStoredJson(getVisualDesignKey(id), null) || getStoredJson(getVisualDesignKey(slug), null) || getStoredJson(getVisualDesignKey(invitation.slug), null) || getStoredJson(getVisualDesignKey(invitation.id), null),
+      visualCanvasImage: keepStorageSafeImage(invitation.visualCanvasImage),
+      visualTemplateImage: keepStorageSafeImage(invitation.visualTemplateImage),
+      birthdayPhotoImage: keepStorageSafeImage(invitation.birthdayPhotoImage),
+      visualDesign: stripDataImagesFromVisualDesign(invitation.visualDesign),
       isCustom: true
     };
   }
@@ -707,23 +828,47 @@
 
   function migrateInvitationStorage(oldId, newId) {
     if (!oldId || !newId || oldId === newId) return;
-    const oldRsvps = getStoredJson(storageKey(oldId), []);
-    const newRsvps = getStoredJson(storageKey(newId), []);
-    if (oldRsvps.length && !newRsvps.length) setStoredJson(storageKey(newId), oldRsvps);
     localStorage.removeItem(storageKey(oldId));
     localStorage.removeItem(legacyStorageKey(oldId));
   }
 
   function getRsvps(invitationId) {
-    const rsvps = getStoredJson(storageKey(invitationId), []);
-    if (rsvps.length) return rsvps;
-    return getStoredJson(legacyStorageKey(invitationId), []);
+    console.warn("RSVP local deshabilitado. Las confirmaciones se leen desde Apps Script.", invitationId);
+    return [];
   }
 
-  function saveRsvp(invitationId, data) {
-    const confirmations = getRsvps(invitationId);
-    confirmations.push(data);
-    setStoredJson(storageKey(invitationId), confirmations);
+  function getInvitationRemoteId(invitationOrId) {
+    const invitation = typeof invitationOrId === "object" ? invitationOrId : getInvitationById(invitationOrId);
+    return invitation?.slug || invitation?.id || generateSlug(invitationOrId || "");
+  }
+
+  function getInvitationScriptUrl(invitationOrId) {
+    const invitation = typeof invitationOrId === "object" ? invitationOrId : getInvitationById(invitationOrId);
+    return invitation?.googleScriptUrl || invitation?.sheetEndpoint || DEFAULT_GOOGLE_SCRIPT_URL;
+  }
+
+  async function fetchRemoteRsvps(invitationOrId) {
+    const scriptUrl = getInvitationScriptUrl(invitationOrId);
+    const invitationId = getInvitationRemoteId(invitationOrId);
+    if (!scriptUrl || !invitationId) return [];
+    const response = await fetch(`${scriptUrl}?id=${encodeURIComponent(invitationId)}`);
+    const data = await response.json();
+    return Array.isArray(data) ? data : (Array.isArray(data.confirmados) ? data.confirmados : []);
+  }
+
+  async function saveRsvp(invitationOrId, data) {
+    const scriptUrl = getInvitationScriptUrl(invitationOrId);
+    const invitationId = getInvitationRemoteId(invitationOrId);
+    if (!scriptUrl || !invitationId) throw new Error("No se configuro Google Apps Script para RSVP.");
+    const formData = new FormData();
+    formData.append("invitacionId", invitationId);
+    formData.append("nombre", data.nombre || "");
+    formData.append("cantidad", String(data.cantidad || data.acompanantes || 1));
+    formData.append("telefono", data.telefono || "");
+    await fetch(scriptUrl, {
+      method: "POST",
+      body: formData
+    });
   }
 
   window.getAllInvitations = getAllInvitations;
@@ -804,10 +949,6 @@
     invitation.visualTemplateImage = invitation.visualTemplateImage || activeEditorInvitation?.visualTemplateImage || localStorage.getItem(getVisualTemplateImageKey(invitationId)) || "";
     invitation.birthdayPhotoImage = invitation.birthdayPhotoImage || activeEditorInvitation?.birthdayPhotoImage || localStorage.getItem(getBirthdayPhotoImageKey(invitationId)) || "";
     invitation.visualDesign = canvas.toJSON ? canvas.toJSON(["visualRole", "selectable", "evented", "lockMovementX", "lockMovementY", "lockRotation", "lockScalingX", "lockScalingY"]) : invitation.visualDesign;
-
-    trySetStorageValue(`visualCanvasImage_${invitationId}`, png);
-    if (invitation.id) trySetStorageValue(`visualCanvasImage_${invitation.id}`, png);
-    if (invitation.slug) trySetStorageValue(`visualCanvasImage_${invitation.slug}`, png);
     persistVisualCanvasImage(invitation, png);
     if (invitation.visualDesign) persistVisualDesign(invitation, invitation.visualDesign);
 
@@ -1326,7 +1467,6 @@
     invitation = await hydrateInvitationVisualAssets(invitation, id);
     console.log("ID usado:", id);
     console.log("visualCanvasImage en invitación:", !!invitation.visualCanvasImage);
-    console.log("visualCanvasImage por localStorage:", !!localStorage.getItem(`visualCanvasImage_${id}`));
     console.log("INVITACION PUBLICA:", invitation);
     console.log("IMAGEN FINAL:", getFinalInvitationImage(invitation) ? "OK" : "NO HAY IMAGEN");
     document.title = invitation.titulo;
@@ -1338,47 +1478,64 @@
       document.querySelector("#rsvp-section")?.scrollIntoView({ behavior: "smooth" });
     });
 
-    form?.addEventListener("submit", (event) => {
+    form?.addEventListener("submit", async (event) => {
       event.preventDefault();
       const formData = new FormData(form);
-      saveRsvp(invitation.id, {
-        nombre: fieldValue(formData, "nombre"),
-        telefono: fieldValue(formData, "telefono"),
-        asiste: formData.get("asiste"),
-        acompanantes: Number(formData.get("acompanantes")) || 0,
-        mensaje: fieldValue(formData, "mensaje"),
-        createdAt: new Date().toISOString()
-      });
-      form.reset();
-      const yesInput = form.querySelector('input[name="asiste"][value="Si"], input[name="asiste"][value="Sí"]');
-      if (yesInput) yesInput.checked = true;
-      form.elements.acompanantes.value = 0;
-      successMessage.textContent = "Confirmación guardada correctamente.";
+      try {
+        await saveRsvp(invitation, {
+          nombre: fieldValue(formData, "nombre"),
+          telefono: fieldValue(formData, "telefono"),
+          asiste: formData.get("asiste"),
+          cantidad: (Number(formData.get("acompanantes")) || 0) + 1,
+          acompanantes: (Number(formData.get("acompanantes")) || 0) + 1,
+          mensaje: fieldValue(formData, "mensaje"),
+          createdAt: new Date().toISOString()
+        });
+        form.reset();
+        const yesInput = form.querySelector('input[name="asiste"][value="Si"], input[name="asiste"][value="Sí"]');
+        if (yesInput) yesInput.checked = true;
+        form.elements.acompanantes.value = 0;
+        successMessage.textContent = "Confirmación guardada correctamente.";
+      } catch (error) {
+        console.error(error);
+        successMessage.textContent = "No se pudo confirmar. Intenta nuevamente.";
+      }
     });
   }
 
-  function renderAdminTable(id) {
-    const confirmations = getRsvps(id);
+  async function renderAdminTable(invitationOrId) {
+    const invitation = typeof invitationOrId === "object" ? invitationOrId : (getInvitationById(invitationOrId) || { id: invitationOrId });
     const table = document.getElementById("confirmationsTable");
-    const totalAttending = confirmations.filter((item) => item.asiste === "Si" || item.asiste === "Sí").length;
-    const totalGuests = confirmations.reduce((sum, item) => sum + (Number(item.acompanantes) || 0), 0);
+    table.innerHTML = `<tr><td colspan="6" class="empty-row">Cargando confirmaciones...</td></tr>`;
+    try {
+      const confirmations = await fetchRemoteRsvps(invitation);
+      const totalPeople = confirmations.reduce((sum, item) => sum + (Number(item.cantidad || item.personas || item.acompanantes) || 1), 0);
 
-    document.getElementById("totalResponses").textContent = confirmations.length;
-    document.getElementById("totalAttending").textContent = totalAttending;
-    document.getElementById("totalGuests").textContent = totalGuests;
+      document.getElementById("totalResponses").textContent = confirmations.length;
+      document.getElementById("totalAttending").textContent = confirmations.length;
+      document.getElementById("totalGuests").textContent = totalPeople;
 
-    table.innerHTML = confirmations.length ? confirmations.map((item) => `
-      <tr>
-        <td>${escapeHtml(item.nombre)}</td>
-        <td>${escapeHtml(item.telefono)}</td>
-        <td>${escapeHtml(item.asiste)}</td>
-        <td>${escapeHtml(item.acompanantes)}</td>
-        <td>${escapeHtml(item.mensaje)}</td>
-        <td>${new Date(item.createdAt).toLocaleString("es-PY")}</td>
-      </tr>
-    `).join("") : `<tr><td colspan="6" class="empty-row">Todavía no hay confirmaciones.</td></tr>`;
+      table.innerHTML = confirmations.length ? confirmations.map((item) => {
+        const cantidad = Number(item.cantidad || item.personas || item.acompanantes) || 1;
+        return `
+          <tr>
+            <td>${escapeHtml(item.nombre || item.name || "")}</td>
+            <td>${escapeHtml(item.telefono || item.phone || "")}</td>
+            <td>Confirmado</td>
+            <td>${escapeHtml(cantidad)}</td>
+            <td>${escapeHtml(item.mensaje || "")}</td>
+            <td>${item.fecha ? new Date(item.fecha).toLocaleString("es-PY") : ""}</td>
+          </tr>
+        `;
+      }).join("") : `<tr><td colspan="6" class="empty-row">Todavía no hay confirmaciones.</td></tr>`;
+    } catch (error) {
+      console.error(error);
+      document.getElementById("totalResponses").textContent = "0";
+      document.getElementById("totalAttending").textContent = "0";
+      document.getElementById("totalGuests").textContent = "0";
+      table.innerHTML = `<tr><td colspan="6" class="empty-row">No se pudieron leer los confirmados. Revisa Apps Script o permisos.</td></tr>`;
+    }
   }
-
   function renderAdmin() {
     const id = getInvitationId();
     const invitation = getInvitationById(id);
@@ -1415,14 +1572,12 @@
       document.getElementById("loginMessage").textContent = "";
       adminGate.classList.add("hidden");
       document.getElementById("adminContent").classList.remove("hidden");
-      renderAdminTable(invitation.id);
+      renderAdminTable(invitation);
     });
 
     document.getElementById("clearConfirmations").addEventListener("click", () => {
-      if (!window.confirm("¿Borrar las confirmaciones guardadas para esta invitación?")) return;
-      localStorage.removeItem(storageKey(invitation.id));
-      localStorage.removeItem(legacyStorageKey(invitation.id));
-      renderAdminTable(invitation.id);
+      alert("Las confirmaciones se guardan en Google Sheets. Borralas desde la hoja de calculo o Apps Script.");
+      renderAdminTable(invitation);
     });
 
     copyPublicLinkButton.addEventListener("click", async () => {
@@ -1956,14 +2111,17 @@
         var response = await fetch(url);
         if (!response.ok) throw new Error("HTTP " + response.status);
         var data = await response.json();
-        var rows = Array.isArray(data) ? data : (Array.isArray(data.confirmados) ? data.confirmados : []);
-        var total = rows.reduce(function (sum, item) { return sum + (Number(item.cantidad || item.personas || item.acompanantes) || 1); }, 0);
-        container.innerHTML = rows.length ? '<p class="export-confirmation-total">Total de personas: ' + total + '</p>' + rows.map(function (item) {
+        console.log(data);
+        var rows = Array.isArray(data) ? data : (Array.isArray(data.invitados) ? data.invitados : (Array.isArray(data.confirmados) ? data.confirmados : []));
+        var total = typeof data.total === "number" ? data.total : rows.reduce(function (sum, item) { return sum + (Number(item.cantidad || item.personas || item.acompanantes) || 1); }, 0);
+        var confirmedCount = typeof data.confirmados === "number" ? data.confirmados : rows.length;
+        if (data.success === false) throw new Error(data.error || "Respuesta sin exito de Apps Script");
+        container.innerHTML = '<p class="export-confirmation-total">Total: ' + total + '</p><p class="export-confirmation-total">Confirmados: ' + confirmedCount + '</p>' + (rows.length ? rows.map(function (item) {
           var nombre = item.nombre || item.name || "Sin nombre";
           var cantidad = Number(item.cantidad || item.personas || item.acompanantes) || 1;
           var telefono = item.telefono || item.phone || "";
           return '<div class="export-confirmation-item"><span>' + nombre + (telefono ? ' - ' + telefono : '') + '</span><strong>' + cantidad + '</strong></div>';
-        }).join("") : "Aun no hay confirmaciones.";
+        }).join("") : "Aún no hay confirmaciones.");
       } catch (error) {
         console.error(error);
         container.innerHTML = "No se pudieron leer los confirmados. Revisa Apps Script o permisos.";
@@ -2334,9 +2492,6 @@
       visualTemplateImage: getVisualTemplateImageForInvitation({ ...formInvitation, ...activeEditorInvitation }),
       birthdayPhotoImage: getBirthdayPhotoImageForInvitation({ ...formInvitation, ...activeEditorInvitation })
     };
-
-    trySetStorageValue(getVisualCanvasImageKey(invitation.id), png);
-    trySetStorageValue(getVisualCanvasImageKey(invitation.slug), png);
     trySetStorageValue(getVisualDesignKey(invitation.id), json);
     trySetStorageValue(getVisualDesignKey(invitation.slug), json);
     if (invitation.visualTemplateImage) persistVisualTemplateImage(invitation, invitation.visualTemplateImage);
@@ -2631,6 +2786,8 @@
       document.getElementById("mobilePreviewButton").classList.remove("active");
     });
   }
+
+  cleanupLegacyImageStorage();
 
   if (page !== "invitation") initSidebar();
 

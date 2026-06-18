@@ -449,14 +449,17 @@
         var response = await fetch(url);
         if (!response.ok) throw new Error("HTTP " + response.status);
         var data = await response.json();
-        var rows = Array.isArray(data) ? data : (Array.isArray(data.confirmados) ? data.confirmados : []);
-        var total = rows.reduce(function (sum, item) { return sum + (Number(item.cantidad || item.personas || item.acompanantes) || 1); }, 0);
-        container.innerHTML = rows.length ? '<p class="export-confirmation-total">Total de personas: ' + total + '</p>' + rows.map(function (item) {
+        console.log(data);
+        var rows = Array.isArray(data) ? data : (Array.isArray(data.invitados) ? data.invitados : (Array.isArray(data.confirmados) ? data.confirmados : []));
+        var total = typeof data.total === "number" ? data.total : rows.reduce(function (sum, item) { return sum + (Number(item.cantidad || item.personas || item.acompanantes) || 1); }, 0);
+        var confirmedCount = typeof data.confirmados === "number" ? data.confirmados : rows.length;
+        if (data.success === false) throw new Error(data.error || "Respuesta sin exito de Apps Script");
+        container.innerHTML = '<p class="export-confirmation-total">Total: ' + total + '</p><p class="export-confirmation-total">Confirmados: ' + confirmedCount + '</p>' + (rows.length ? rows.map(function (item) {
           var nombre = item.nombre || item.name || "Sin nombre";
           var cantidad = Number(item.cantidad || item.personas || item.acompanantes) || 1;
           var telefono = item.telefono || item.phone || "";
           return '<div class="export-confirmation-item"><span>' + nombre + (telefono ? ' - ' + telefono : '') + '</span><strong>' + cantidad + '</strong></div>';
-        }).join("") : "Aun no hay confirmaciones.";
+        }).join("") : "Aún no hay confirmaciones.");
       } catch (error) {
         console.error(error);
         container.innerHTML = "No se pudieron leer los confirmados. Revisa Apps Script o permisos.";
