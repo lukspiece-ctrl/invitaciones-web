@@ -3,6 +3,7 @@
   const CUSTOM_INVITATIONS_KEY = "custom_invitations";
   const DELETED_INVITATIONS_KEY = "deleted_invitations";
   const SIDEBAR_COLLAPSED_KEY = "sidebar_collapsed";
+  const DEFAULT_GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8mAYwwCzTA1q_uGnhtX0Jsu0AYNw8i93DO-jppIhAzqNEeo42RXFS_kVqurJSH0tx/exec";
   const DEFAULT_DESIGN = {
     primaryColor: "#3f7d72",
     secondaryColor: "#c4765c",
@@ -193,7 +194,9 @@
       lugar: invitation.lugar,
       direccion: invitation.direccion,
       googleMapsUrl: invitation.googleMapsUrl,
+      googleScriptUrl: invitation.googleScriptUrl || invitation.sheetEndpoint || DEFAULT_GOOGLE_SCRIPT_URL,
       telefono: invitation.telefono,
+      adminPassword: invitation.adminPassword || "",
       descripcion: invitation.descripcion,
       visualCanvasImage: imagePath(invitation.visualCanvasImage, false),
       mainImage: imagePath(design.mainImage, false),
@@ -363,6 +366,7 @@
       descripcion: invitation.descripcion || "Invitación personalizada.",
       imagen: invitation.imagen || "assets/img/celebracion.svg",
       sheetEndpoint: invitation.sheetEndpoint || "",
+      googleScriptUrl: invitation.googleScriptUrl || invitation.sheetEndpoint || DEFAULT_GOOGLE_SCRIPT_URL,
       nombre: invitation.nombre || invitation.anfitrion || "",
       edad: invitation.edad || "",
       telefono: invitation.telefono || "",
@@ -1441,6 +1445,7 @@
       direccion: fieldValue(formData, "direccion"),
       telefono: fieldValue(formData, "telefono"),
       googleMapsUrl: fieldValue(formData, "googleMapsUrl"),
+      googleScriptUrl: fieldValue(formData, "googleScriptUrl"),
       descripcion: fieldValue(formData, "descripcion"),
       adminPassword: fieldValue(formData, "adminPassword"),
       customHtml: fieldValue(formData, "customHtml"),
@@ -1561,6 +1566,7 @@
       direccion: fieldValue(formData, "direccion"),
       telefono: fieldValue(formData, "telefono"),
       googleMapsUrl: fieldValue(formData, "googleMapsUrl"),
+      googleScriptUrl: fieldValue(formData, "googleScriptUrl"),
       descripcion: fieldValue(formData, "descripcion"),
       adminPassword: fieldValue(formData, "adminPassword"),
       customHtml: rawFieldValue(formData, "customHtml"),
@@ -1593,6 +1599,7 @@
     form.elements.direccion.value = invitation.direccion || "";
     form.elements.telefono.value = invitation.telefono || "";
     form.elements.googleMapsUrl.value = invitation.googleMapsUrl || "";
+    if (form.elements.googleScriptUrl) form.elements.googleScriptUrl.value = invitation.googleScriptUrl || invitation.sheetEndpoint || "";
     form.elements.adminPassword.value = invitation.adminPassword || "";
     form.elements.descripcion.value = invitation.descripcion || "";
     form.elements.customHtml.value = invitation.customHtml || "";
@@ -1819,10 +1826,9 @@
     const effectLayers = animationClass
       ? `<div class="magic-overlay"></div><div class="sparkles-layer" data-sparkles-layer></div><div class="shine-layer"></div>`
       : "";
-    const cleanPhone = String(invitation.telefono || "").replace(/[^0-9]/g, "");
-    const rsvpButton = cleanPhone
-      ? `<a class="export-rsvp-button" href="https://wa.me/${encodeURIComponent(cleanPhone)}" target="_blank" rel="noopener">Confirmar asistencia</a>`
-      : `<button class="export-rsvp-button" type="button" data-export-rsvp>Confirmar asistencia</button>`;
+    const googleScriptUrl = invitation.googleScriptUrl || invitation.sheetEndpoint || DEFAULT_GOOGLE_SCRIPT_URL;
+    const invitationKey = invitation.slug || invitation.id || "invitacion";
+    const adminPassword = invitation.adminPassword || "";
     const exportedData = JSON.stringify({
       id: invitation.id,
       slug: invitation.slug,
@@ -1850,7 +1856,17 @@
     #custom-invitation-root { width: min(100vw - 24px, 450px); height: auto; aspect-ratio: 9 / 16; max-height: calc(100vh - 24px); border-radius: 8px; box-shadow: 0 28px 90px rgba(0,0,0,.34); }
     .generated-invitation, .invitation-card { width: 100%; height: 100%; min-height: 0; padding: clamp(14px, 4vw, 28px); }
     .custom-html-layer { pointer-events: auto; }
-    .export-rsvp-button { position: absolute; left: 50%; bottom: 22px; z-index: 30; transform: translateX(-50%); display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--inv-button); color: #fff; font: inherit; font-weight: 900; text-decoration: none; box-shadow: 0 14px 34px rgba(0,0,0,.22); cursor: pointer; }
+    .export-rsvp-panel { width: min(100vw - 24px, 450px); margin: 18px auto 0; padding: 18px; border-radius: 8px; background: #fff; color: #26302f; box-shadow: 0 18px 50px rgba(0,0,0,.18); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    .export-rsvp-panel h2 { margin: 0 0 12px; font-size: 1.15rem; }
+    .export-rsvp-form { display: grid; gap: 10px; }
+    .export-rsvp-form label { display: grid; gap: 5px; font-size: .88rem; font-weight: 800; }
+    .export-rsvp-form input { width: 100%; min-height: 42px; border: 1px solid rgba(38,48,47,.18); border-radius: 8px; padding: 0 12px; font: inherit; }
+    .export-rsvp-button, .export-host-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--inv-button); color: #fff; font: inherit; font-weight: 900; text-decoration: none; box-shadow: 0 14px 34px rgba(0,0,0,.14); cursor: pointer; }
+    .export-host-button { width: 100%; margin-top: 12px; background: #26302f; }
+    .export-rsvp-status { min-height: 20px; margin: 8px 0 0; color: #3f7d72; font-weight: 800; }
+    .export-confirmations { display: grid; gap: 8px; margin-top: 12px; }
+    .export-confirmation-item { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid rgba(38,48,47,.12); padding-bottom: 8px; }
+    .export-confirmation-total { margin-top: 12px; font-weight: 900; }
     @media (max-width: 520px) { body { padding: 0; } #custom-invitation-root { width: 100vw; max-height: none; border-radius: 0; box-shadow: none; } }
   </style>
   <style>${css}</style>
@@ -1861,10 +1877,24 @@
       ${finalImage ? `<img class="template-layer" src="${escapeHtml(finalImage)}" alt="Invitacion">` : ""}
       ${effectLayers}
       <div class="custom-html-layer">${contentHtml}</div>
-      ${rsvpButton}
     </div>
   </section>
+  <section class="export-rsvp-panel" aria-label="Confirmar asistencia">
+    <h2>Confirmar asistencia</h2>
+    <form class="export-rsvp-form" data-rsvp-form>
+      <label>Nombre<input type="text" name="nombre" autocomplete="name" required></label>
+      <label>Cantidad de personas<input type="number" name="cantidad" min="1" value="1" required></label>
+      <label>Telefono opcional<input type="tel" name="telefono" autocomplete="tel"></label>
+      <button class="export-rsvp-button" type="submit">Confirmar asistencia</button>
+      <p class="export-rsvp-status" data-rsvp-status role="status"></p>
+    </form>
+    <button class="export-host-button" type="button" data-host-button>&#128274; Ver confirmados</button>
+    <div class="export-confirmations" data-confirmations hidden></div>
+  </section>
   <script>
+    const GOOGLE_SCRIPT_URL = ${JSON.stringify(googleScriptUrl)};
+    const INVITACION_ID = ${JSON.stringify(invitationKey)};
+    const ADMIN_PASSWORD = ${JSON.stringify(adminPassword)};
     window.INVITACION_EXPORTADA = ${exportedData};
     document.querySelectorAll(".sparkles-layer").forEach(function (layer) {
       if (layer.dataset.ready === "true") return;
@@ -1879,9 +1909,78 @@
         layer.appendChild(sparkle);
       }
     });
-    document.querySelector("[data-export-rsvp]")?.addEventListener("click", function () {
-      alert("Confirmacion recibida. Gracias.");
+    function setRsvpStatus(message, isError) {
+      var status = document.querySelector("[data-rsvp-status]");
+      if (!status) return;
+      status.textContent = message || "";
+      status.style.color = isError ? "#b23b3b" : "#3f7d72";
+    }
+
+    document.querySelector("[data-rsvp-form]")?.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      if (!GOOGLE_SCRIPT_URL) {
+        setRsvpStatus("No se configuro la URL de Google Apps Script.", true);
+        return;
+      }
+      var formData = new FormData(event.currentTarget);
+      var payload = {
+        invitacionId: INVITACION_ID,
+        nombre: String(formData.get("nombre") || "").trim(),
+        cantidad: Number(formData.get("cantidad")) || 1,
+        telefono: String(formData.get("telefono") || "").trim()
+      };
+      if (!payload.nombre) {
+        setRsvpStatus("Ingresa tu nombre.", true);
+        return;
+      }
+      try {
+        setRsvpStatus("Guardando confirmacion...", false);
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+        event.currentTarget.reset();
+        event.currentTarget.elements.cantidad.value = 1;
+        setRsvpStatus("Confirmacion guardada. Gracias.", false);
+      } catch (error) {
+        console.error("No se pudo confirmar asistencia", error);
+        setRsvpStatus("No se pudo guardar. Intenta de nuevo.", true);
+      }
     });
+
+    document.querySelector("[data-host-button]")?.addEventListener("click", async function () {
+      if (!GOOGLE_SCRIPT_URL) {
+        alert("No se configuro la URL de Google Apps Script.");
+        return;
+      }
+      var password = prompt("Contrasena del anfitrion");
+      if (password !== ADMIN_PASSWORD) {
+        alert("Contrasena incorrecta.");
+        return;
+      }
+      var container = document.querySelector("[data-confirmations]");
+      if (!container) return;
+      try {
+        container.hidden = false;
+        container.innerHTML = "Cargando confirmados...";
+        var response = await fetch(GOOGLE_SCRIPT_URL + "?id=" + encodeURIComponent(INVITACION_ID));
+        var data = await response.json();
+        var rows = Array.isArray(data) ? data : (Array.isArray(data.confirmados) ? data.confirmados : []);
+        var total = rows.reduce(function (sum, item) { return sum + (Number(item.cantidad || item.personas || item.acompanantes) || 1); }, 0);
+        container.innerHTML = rows.length ? rows.map(function (item) {
+          var nombre = item.nombre || item.name || "Sin nombre";
+          var cantidad = Number(item.cantidad || item.personas || item.acompanantes) || 1;
+          var telefono = item.telefono || item.phone || "";
+          return '<div class="export-confirmation-item"><span>' + nombre + (telefono ? ' - ' + telefono : '') + '</span><strong>' + cantidad + '</strong></div>';
+        }).join("") + '<p class="export-confirmation-total">Total de personas: ' + total + '</p>' : "Todavia no hay confirmados.";
+      } catch (error) {
+        console.error("No se pudieron leer confirmados", error);
+        container.innerHTML = "No se pudieron leer los confirmados.";
+      }
+    });
+
     try {
       ${escapeScript(js)}
     } catch (error) {
