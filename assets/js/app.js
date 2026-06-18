@@ -1837,7 +1837,7 @@
     const effectLayers = animationClass
       ? `<div class="magic-overlay"></div><div class="sparkles-layer" data-sparkles-layer></div><div class="shine-layer"></div>`
       : "";
-    const googleScriptUrl = invitation.googleScriptUrl || invitation.sheetEndpoint || DEFAULT_GOOGLE_SCRIPT_URL;
+    const googleScriptUrl = DEFAULT_GOOGLE_SCRIPT_URL;
     const invitationKey = invitation.slug || invitation.id || "invitacion";
     const adminPassword = invitation.adminPassword || "";
     const exportedData = JSON.stringify({
@@ -1919,7 +1919,7 @@
   </main>
   <script>
     const GOOGLE_SCRIPT_URL = ${JSON.stringify(googleScriptUrl)};
-    const INVITACION_ID = ${JSON.stringify(invitationKey)};
+    const INVITATION_ID = ${JSON.stringify(invitationKey)};
     const ADMIN_PASSWORD = ${JSON.stringify(adminPassword)};
     window.INVITACION_EXPORTADA = ${exportedData};
     document.querySelectorAll(".sparkles-layer").forEach(function (layer) {
@@ -1946,34 +1946,68 @@
       status.style.color = isError ? "#b23b3b" : "#3f7d72";
     }
 
+    async function loadConfirmations() {
+      var container = document.querySelector("[data-confirmations]");
+      if (!container) return;
+      container.hidden = false;
+      container.innerHTML = "Cargando confirmados...";
+      try {
+        var url = GOOGLE_SCRIPT_URL + "?id=" + encodeURIComponent(INVITATION_ID);
+        var response = await fetch(url);
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        var data = await response.json();
+        var rows = Array.isArray(data) ? data : (Array.isArray(data.confirmados) ? data.confirmados : []);
+        var total = rows.reduce(function (sum, item) { return sum + (Number(item.cantidad || item.personas || item.acompanantes) || 1); }, 0);
+        container.innerHTML = rows.length ? '<p class="export-confirmation-total">Total de personas: ' + total + '</p>' + rows.map(function (item) {
+          var nombre = item.nombre || item.name || "Sin nombre";
+          var cantidad = Number(item.cantidad || item.personas || item.acompanantes) || 1;
+          var telefono = item.telefono || item.phone || "";
+          return '<div class="export-confirmation-item"><span>' + nombre + (telefono ? ' - ' + telefono : '') + '</span><strong>' + cantidad + '</strong></div>';
+        }).join("") : "Aun no hay confirmaciones.";
+      } catch (error) {
+        console.error(error);
+        container.innerHTML = "No se pudieron leer los confirmados. Revisa Apps Script o permisos.";
+      }
+    }
+
     document.querySelector("[data-rsvp-form]")?.addEventListener("submit", async function (event) {
       event.preventDefault();
       if (!GOOGLE_SCRIPT_URL) {
         setRsvpStatus("No se configuro la URL de Google Apps Script.", true);
         return;
       }
-      var formData = new FormData(event.currentTarget);
-      var payload = {
-        invitacionId: INVITACION_ID,
-        nombre: String(formData.get("nombre") || "").trim(),
-        cantidad: Number(formData.get("cantidad")) || 1,
-        telefono: String(formData.get("telefono") || "").trim()
-      };
-      if (!payload.nombre) {
+      var sourceForm = event.currentTarget;
+      var sourceData = new FormData(sourceForm);
+      var nombre = String(sourceData.get("nombre") || "").trim();
+      var cantidad = Number(sourceData.get("cantidad"));
+      var telefono = String(sourceData.get("telefono") || "").trim();
+      if (!nombre) {
         setRsvpStatus("Ingresa tu nombre.", true);
         return;
       }
+      if (!cantidad || cantidad <= 0) {
+        setRsvpStatus("Ingresa una cantidad mayor a 0.", true);
+        return;
+      }
+      var formData = new FormData();
+      formData.append("invitacionId", INVITATION_ID);
+      formData.append("nombre", nombre);
+      formData.append("cantidad", String(cantidad));
+      formData.append("telefono", telefono);
       try {
         setRsvpStatus("Guardando confirmacion...", false);
-        await fetch(GOOGLE_SCRIPT_URL, {
+        var response = await fetch(GOOGLE_SCRIPT_URL, {
           method: "POST",
-          body: JSON.stringify(payload)
+          body: formData
         });
-        event.currentTarget.reset();
-        event.currentTarget.elements.cantidad.value = 1;
-        setRsvpStatus("Gracias por confirmar tu asistencia.", false);
+        if (!response.ok) console.warn("Respuesta POST Apps Script:", response.status);
+        sourceForm.reset();
+        sourceForm.elements.cantidad.value = 1;
+        setRsvpStatus("Gracias por confirmar tu asistencia", false);
+        var confirmations = document.querySelector("[data-confirmations]");
+        if (confirmations && !confirmations.hidden) await loadConfirmations();
       } catch (error) {
-        console.error("No se pudo confirmar asistencia", error);
+        console.error(error);
         setRsvpStatus("No se pudo confirmar. Intenta nuevamente.", true);
       }
     });
@@ -1988,25 +2022,7 @@
         alert("Contrasena incorrecta.");
         return;
       }
-      var container = document.querySelector("[data-confirmations]");
-      if (!container) return;
-      try {
-        container.hidden = false;
-        container.innerHTML = "Cargando confirmados...";
-        var response = await fetch(GOOGLE_SCRIPT_URL + "?id=" + encodeURIComponent(INVITACION_ID));
-        var data = await response.json();
-        var rows = Array.isArray(data) ? data : (Array.isArray(data.confirmados) ? data.confirmados : []);
-        var total = rows.reduce(function (sum, item) { return sum + (Number(item.cantidad || item.personas || item.acompanantes) || 1); }, 0);
-        container.innerHTML = rows.length ? rows.map(function (item) {
-          var nombre = item.nombre || item.name || "Sin nombre";
-          var cantidad = Number(item.cantidad || item.personas || item.acompanantes) || 1;
-          var telefono = item.telefono || item.phone || "";
-          return '<div class="export-confirmation-item"><span>' + nombre + (telefono ? ' - ' + telefono : '') + '</span><strong>' + cantidad + '</strong></div>';
-        }).join("") + '<p class="export-confirmation-total">Total de personas: ' + total + '</p>' : "Aun no hay confirmaciones.";
-      } catch (error) {
-        console.error("No se pudieron leer confirmados", error);
-        container.innerHTML = "No se pudieron leer los confirmados.";
-      }
+      await loadConfirmations();
     });
 
     try {
