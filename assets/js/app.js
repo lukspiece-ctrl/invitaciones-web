@@ -970,7 +970,7 @@
 <body>
   <section id="custom-invitation-root">
     <div class="generated-invitation invitation-card typography-${escapeHtml(design.typography)}${animationClass}" style="--inv-primary:${escapeHtml(design.primaryColor)}; --inv-secondary:${escapeHtml(design.secondaryColor)}; --inv-text:${escapeHtml(design.textColor)}; --inv-button:${escapeHtml(design.buttonColor)};">
-      ${finalImage ? `<img class="template-layer" src="${escapeHtml(finalImage)}" alt="Invitación">` : `<p class="missing-template-message">Invitación encontrada, pero no tiene imagen guardada.</p>`}
+      ${finalImage ? `<img class="template-layer" src="${escapeHtml(finalImage)}" alt="Invitacion">` : `<p class="missing-template-message">Invitación encontrada, pero no tiene imagen guardada.</p>`}
       ${effectLayers}
       <div class="custom-html-layer">${contentHtml}</div>
     </div>
@@ -1624,7 +1624,7 @@
     if (page !== "editor") return;
     const invitation = getProfessionalFormData();
     updateEditorPublicUrl();
-    document.getElementById("previewTitle").textContent = invitation.titulo || "Invitación";
+    document.getElementById("previewTitle").textContent = invitation.titulo || "Invitacion";
     document.getElementById("livePreviewFrame").srcdoc = buildCustomInvitationDocument(invitation);
   }
 
@@ -1770,6 +1770,139 @@
     URL.revokeObjectURL(url);
   }
 
+  function downloadTextFile(filename, content, type = "text/html") {
+    const blob = new Blob([content], { type: `${type};charset=utf-8` });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function getExportedInvitationImage(invitation) {
+    if (visualEditorCanvas) {
+      visualEditorCanvas.discardActiveObject();
+      visualEditorCanvas.renderAll();
+      return visualEditorCanvas.toDataURL({
+        format: "png",
+        quality: 1,
+        multiplier: 1
+      });
+    }
+    const canvasImage = invitation.visualCanvasImage || getVisualCanvasImageForInvitation(invitation);
+    return canvasImage || getFinalInvitationImage(invitation);
+  }
+
+  function buildStandaloneInvitationHtml(invitation) {
+    const design = { ...DEFAULT_DESIGN, ...(invitation.design || {}) };
+    const finalImage = getExportedInvitationImage(invitation);
+    const customHtml = stripFullDocumentMarkup(replaceInvitationVariables(invitation.customHtml || "", invitation));
+    const fallbackContent = `
+      <div class="generated-content invitation-content">
+        <p class="generated-kicker">${escapeHtml(invitation.tipo || "Evento")}</p>
+        <h1>${escapeHtml(invitation.titulo || invitation.nombre || "Invitacion")}</h1>
+        <p class="generated-host">${escapeHtml(invitation.anfitrion || invitation.nombre || "")}</p>
+        <div class="generated-details">
+          ${invitation.fecha ? `<span>${formatDate(invitation.fecha)}</span>` : ""}
+          ${invitation.hora ? `<span>${escapeHtml(invitation.hora)}</span>` : ""}
+          ${invitation.lugar ? `<span>${escapeHtml(invitation.lugar)}</span>` : ""}
+        </div>
+        ${invitation.edad ? `<p class="generated-host">${escapeHtml(invitation.edad)}</p>` : ""}
+        ${invitation.direccion ? `<p class="generated-address">${escapeHtml(invitation.direccion)}</p>` : ""}
+        ${invitation.descripcion ? `<p class="generated-address">${escapeHtml(invitation.descripcion)}</p>` : ""}
+      </div>`;
+    const contentHtml = customHtml || fallbackContent;
+    const css = replaceInvitationVariables(invitation.customCss || "", invitation);
+    const js = replaceInvitationVariables(invitation.customJs || "", invitation);
+    const animationClass = design.animation && design.animation !== "none" ? ` animation-${design.animation}` : "";
+    const effectLayers = animationClass
+      ? `<div class="magic-overlay"></div><div class="sparkles-layer" data-sparkles-layer></div><div class="shine-layer"></div>`
+      : "";
+    const cleanPhone = String(invitation.telefono || "").replace(/[^0-9]/g, "");
+    const rsvpButton = cleanPhone
+      ? `<a class="export-rsvp-button" href="https://wa.me/${encodeURIComponent(cleanPhone)}" target="_blank" rel="noopener">Confirmar asistencia</a>`
+      : `<button class="export-rsvp-button" type="button" data-export-rsvp>Confirmar asistencia</button>`;
+    const exportedData = JSON.stringify({
+      id: invitation.id,
+      slug: invitation.slug,
+      titulo: invitation.titulo,
+      nombre: invitation.nombre,
+      edad: invitation.edad,
+      fecha: invitation.fecha,
+      hora: invitation.hora,
+      lugar: invitation.lugar,
+      direccion: invitation.direccion,
+      telefono: invitation.telefono,
+      descripcion: invitation.descripcion
+    }).replace(/<\/script/gi, "<\\/script");
+
+    return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(invitation.titulo || invitation.nombre || "Invitacion")}</title>
+  <style>${baseDocumentStyles()}</style>
+  <style>
+    html, body { min-height: 100%; overflow: auto; background: #111816; }
+    body { margin: 0; display: grid; place-items: center; padding: clamp(12px, 4vw, 32px); }
+    #custom-invitation-root { width: min(100vw - 24px, 450px); height: auto; aspect-ratio: 9 / 16; max-height: calc(100vh - 24px); border-radius: 8px; box-shadow: 0 28px 90px rgba(0,0,0,.34); }
+    .generated-invitation, .invitation-card { width: 100%; height: 100%; min-height: 0; padding: clamp(14px, 4vw, 28px); }
+    .custom-html-layer { pointer-events: auto; }
+    .export-rsvp-button { position: absolute; left: 50%; bottom: 22px; z-index: 30; transform: translateX(-50%); display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--inv-button); color: #fff; font: inherit; font-weight: 900; text-decoration: none; box-shadow: 0 14px 34px rgba(0,0,0,.22); cursor: pointer; }
+    @media (max-width: 520px) { body { padding: 0; } #custom-invitation-root { width: 100vw; max-height: none; border-radius: 0; box-shadow: none; } }
+  </style>
+  <style>${css}</style>
+</head>
+<body>
+  <section id="custom-invitation-root">
+    <div class="generated-invitation invitation-card typography-${escapeHtml(design.typography)}${animationClass}" style="--inv-primary:${escapeHtml(design.primaryColor)}; --inv-secondary:${escapeHtml(design.secondaryColor)}; --inv-text:${escapeHtml(design.textColor)}; --inv-button:${escapeHtml(design.buttonColor)};">
+      ${finalImage ? `<img class="template-layer" src="${escapeHtml(finalImage)}" alt="Invitacion">` : ""}
+      ${effectLayers}
+      <div class="custom-html-layer">${contentHtml}</div>
+      ${rsvpButton}
+    </div>
+  </section>
+  <script>
+    window.INVITACION_EXPORTADA = ${exportedData};
+    document.querySelectorAll(".sparkles-layer").forEach(function (layer) {
+      if (layer.dataset.ready === "true") return;
+      layer.dataset.ready = "true";
+      for (var index = 0; index < 28; index += 1) {
+        var sparkle = document.createElement("span");
+        sparkle.className = "sparkle";
+        sparkle.style.left = Math.round(Math.random() * 100) + "%";
+        sparkle.style.top = Math.round(Math.random() * 100) + "%";
+        sparkle.style.animationDelay = (Math.random() * 3).toFixed(2) + "s";
+        sparkle.style.animationDuration = (2.4 + Math.random() * 2.8).toFixed(2) + "s";
+        layer.appendChild(sparkle);
+      }
+    });
+    document.querySelector("[data-export-rsvp]")?.addEventListener("click", function () {
+      alert("Confirmacion recibida. Gracias.");
+    });
+    try {
+      ${escapeScript(js)}
+    } catch (error) {
+      console.error("Error en JS personalizado:", error);
+    }
+  <\/script>
+</body>
+</html>`;
+  }
+
+  function exportPublicHtmlInvitation() {
+    const invitation = attachVisualDesignToInvitation(getProfessionalFormData());
+    const html = buildStandaloneInvitationHtml(invitation);
+    const filename = `${getInvitationPublicSlug(invitation) || "invitacion"}.html`;
+    downloadTextFile(filename, html, "text/html");
+    const message = document.getElementById("editorMessage");
+    if (message) {
+      message.className = "success-message";
+      message.textContent = "HTML publico exportado correctamente.";
+    }
+  }
   function importInvitation(file) {
     if (!file) return;
     const reader = new FileReader();
@@ -1803,6 +1936,7 @@
   window.duplicateInvitation = duplicateInvitation;
   window.deleteInvitation = deleteInvitation;
   window.exportInvitation = exportInvitation;
+  window.exportPublicHtmlInvitation = exportPublicHtmlInvitation;
   window.importInvitation = importInvitation;
   window.viewAsGuest = viewAsGuest;
   let visualEditorCanvas = null;
@@ -2256,6 +2390,7 @@
     document.getElementById("duplicateInvitationButton").addEventListener("click", duplicateInvitation);
     document.getElementById("deleteInvitationButton").addEventListener("click", deleteInvitation);
     document.getElementById("exportInvitationButton").addEventListener("click", exportInvitation);
+    document.getElementById("exportPublicHtmlButton")?.addEventListener("click", exportPublicHtmlInvitation);
     document.getElementById("importInvitationInput").addEventListener("change", (event) => importInvitation(event.target.files[0]));
     ["customHtml", "customCss", "customJs", "mainImage", "backgroundImage", "imageUrl", "uploadedImage"].forEach((fieldName) => {
       const field = form.elements[fieldName];
