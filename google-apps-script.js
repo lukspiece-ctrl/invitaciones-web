@@ -18,7 +18,14 @@ function jsonResponse(data) {
 
 function doPost(e) {
   const sheet = getSheet();
-  const data = JSON.parse(e.postData.contents || "{}");
+  let data = e.parameter || {};
+  if (e.postData && e.postData.contents) {
+    try {
+      data = JSON.parse(e.postData.contents);
+    } catch (error) {
+      data = e.parameter || {};
+    }
+  }
   sheet.appendRow([
     data.invitacionId || "",
     data.nombre || "",
@@ -42,5 +49,5 @@ function doGet(e) {
       telefono: row[3],
       fecha: row[4]
     }));
-  return jsonResponse(rows);
+  return jsonResponse({ confirmados: rows, total: rows.length });
 }

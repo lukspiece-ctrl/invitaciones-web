@@ -1851,46 +1851,61 @@
   <title>${escapeHtml(invitation.titulo || invitation.nombre || "Invitacion")}</title>
   <style>${baseDocumentStyles()}</style>
   <style>
-    html, body { min-height: 100%; overflow: auto; background: #111816; }
-    body { margin: 0; display: grid; place-items: center; padding: clamp(12px, 4vw, 32px); }
-    #custom-invitation-root { width: min(100vw - 24px, 450px); height: auto; aspect-ratio: 9 / 16; max-height: calc(100vh - 24px); border-radius: 8px; box-shadow: 0 28px 90px rgba(0,0,0,.34); }
-    .generated-invitation, .invitation-card { width: 100%; height: 100%; min-height: 0; padding: clamp(14px, 4vw, 28px); }
-    .custom-html-layer { pointer-events: auto; }
-    .export-rsvp-panel { width: min(100vw - 24px, 450px); margin: 18px auto 0; padding: 18px; border-radius: 8px; background: #fff; color: #26302f; box-shadow: 0 18px 50px rgba(0,0,0,.18); font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-    .export-rsvp-panel h2 { margin: 0 0 12px; font-size: 1.15rem; }
+    html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; background: #111816; }
+    body { margin: 0; padding: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    .public-invitation-page { width: 100%; min-height: 100vh; display: grid; gap: 18px; justify-items: center; padding: 16px 12px 34px; }
+    .invitation-preview { width: min(100vw, 430px); margin: 0 auto; }
+    #custom-invitation-root { width: 100%; height: auto; overflow: visible; }
+    .generated-invitation, .invitation-card { position: relative; width: 100%; aspect-ratio: 9 / 16; height: auto; min-height: 0; overflow: hidden; padding: 0; border-radius: 8px; background: #fff; box-shadow: 0 28px 90px rgba(0,0,0,.34); }
+    .template-layer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; border-radius: inherit; z-index: 1; background: #fff; }
+    .custom-html-layer { pointer-events: auto; z-index: 10; }
+    .rsvp-actions, .rsvp-section, .host-section { width: min(100vw - 24px, 430px); margin: 0 auto; }
+    .rsvp-actions { display: grid; gap: 10px; }
+    .rsvp-section, .host-section { padding: 18px; border-radius: 8px; background: #fff; color: #26302f; box-shadow: 0 18px 50px rgba(0,0,0,.18); }
+    .rsvp-section h2, .host-section h2 { margin: 0 0 12px; font-size: 1.15rem; }
     .export-rsvp-form { display: grid; gap: 10px; }
     .export-rsvp-form label { display: grid; gap: 5px; font-size: .88rem; font-weight: 800; }
-    .export-rsvp-form input { width: 100%; min-height: 42px; border: 1px solid rgba(38,48,47,.18); border-radius: 8px; padding: 0 12px; font: inherit; }
-    .export-rsvp-button, .export-host-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--inv-button); color: #fff; font: inherit; font-weight: 900; text-decoration: none; box-shadow: 0 14px 34px rgba(0,0,0,.14); cursor: pointer; }
-    .export-host-button { width: 100%; margin-top: 12px; background: #26302f; }
+    .export-rsvp-form input { width: 100%; min-height: 44px; border: 1px solid rgba(38,48,47,.18); border-radius: 8px; padding: 0 12px; font: inherit; }
+    .export-rsvp-button, .export-host-button, #scrollToRsvpButton { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 46px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--inv-button); color: #fff; font: inherit; font-weight: 900; text-decoration: none; box-shadow: 0 14px 34px rgba(0,0,0,.14); cursor: pointer; }
+    .export-host-button { background: #26302f; }
     .export-rsvp-status { min-height: 20px; margin: 8px 0 0; color: #3f7d72; font-weight: 800; }
     .export-confirmations { display: grid; gap: 8px; margin-top: 12px; }
     .export-confirmation-item { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid rgba(38,48,47,.12); padding-bottom: 8px; }
-    .export-confirmation-total { margin-top: 12px; font-weight: 900; }
-    @media (max-width: 520px) { body { padding: 0; } #custom-invitation-root { width: 100vw; max-height: none; border-radius: 0; box-shadow: none; } }
+    .export-confirmation-total { margin: 0 0 12px; font-weight: 900; }
+    @media (max-width: 520px) { .public-invitation-page { padding: 0 0 28px; } .invitation-preview { width: 100vw; } .generated-invitation, .invitation-card { border-radius: 0; box-shadow: none; } .rsvp-actions, .rsvp-section, .host-section { width: calc(100% - 24px); } }
   </style>
   <style>${css}</style>
 </head>
 <body>
-  <section id="custom-invitation-root">
-    <div class="generated-invitation invitation-card typography-${escapeHtml(design.typography)}${animationClass}" style="--inv-primary:${escapeHtml(design.primaryColor)}; --inv-secondary:${escapeHtml(design.secondaryColor)}; --inv-text:${escapeHtml(design.textColor)}; --inv-button:${escapeHtml(design.buttonColor)};">
-      ${finalImage ? `<img class="template-layer" src="${escapeHtml(finalImage)}" alt="Invitacion">` : ""}
-      ${effectLayers}
-      <div class="custom-html-layer">${contentHtml}</div>
-    </div>
-  </section>
-  <section class="export-rsvp-panel" aria-label="Confirmar asistencia">
-    <h2>Confirmar asistencia</h2>
-    <form class="export-rsvp-form" data-rsvp-form>
-      <label>Nombre<input type="text" name="nombre" autocomplete="name" required></label>
-      <label>Cantidad de personas<input type="number" name="cantidad" min="1" value="1" required></label>
-      <label>Telefono opcional<input type="tel" name="telefono" autocomplete="tel"></label>
-      <button class="export-rsvp-button" type="submit">Confirmar asistencia</button>
-      <p class="export-rsvp-status" data-rsvp-status role="status"></p>
-    </form>
-    <button class="export-host-button" type="button" data-host-button>&#128274; Ver confirmados</button>
-    <div class="export-confirmations" data-confirmations hidden></div>
-  </section>
+  <main class="public-invitation-page">
+    <section class="invitation-preview">
+      <div id="custom-invitation-root">
+        <div class="generated-invitation invitation-card typography-${escapeHtml(design.typography)}${animationClass}" style="--inv-primary:${escapeHtml(design.primaryColor)}; --inv-secondary:${escapeHtml(design.secondaryColor)}; --inv-text:${escapeHtml(design.textColor)}; --inv-button:${escapeHtml(design.buttonColor)};">
+          ${finalImage ? `<img class="template-layer" src="${escapeHtml(finalImage)}" alt="Invitacion">` : ""}
+          ${effectLayers}
+          <div class="custom-html-layer">${contentHtml}</div>
+        </div>
+      </div>
+    </section>
+    <section class="rsvp-actions">
+      <button id="scrollToRsvpButton" type="button">Confirmar asistencia</button>
+    </section>
+    <section id="rsvpSection" class="rsvp-section" aria-label="Confirmar asistencia">
+      <h2>Confirmar asistencia</h2>
+      <form class="export-rsvp-form" data-rsvp-form>
+        <label>Nombre<input type="text" name="nombre" autocomplete="name" required></label>
+        <label>Cantidad de personas<input type="number" name="cantidad" min="1" value="1" required></label>
+        <label>Telefono opcional<input type="tel" name="telefono" autocomplete="tel"></label>
+        <button class="export-rsvp-button" type="submit">Enviar confirmacion</button>
+        <p class="export-rsvp-status" data-rsvp-status role="status"></p>
+      </form>
+    </section>
+    <section class="host-section" aria-label="Area del anfitrion">
+      <h2>Area del anfitrion</h2>
+      <button class="export-host-button" type="button" data-host-button>&#128274; Ver confirmados</button>
+      <div class="export-confirmations" data-confirmations hidden></div>
+    </section>
+  </main>
   <script>
     const GOOGLE_SCRIPT_URL = ${JSON.stringify(googleScriptUrl)};
     const INVITACION_ID = ${JSON.stringify(invitationKey)};
@@ -1909,6 +1924,10 @@
         layer.appendChild(sparkle);
       }
     });
+    document.getElementById("scrollToRsvpButton")?.addEventListener("click", function () {
+      document.getElementById("rsvpSection")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
     function setRsvpStatus(message, isError) {
       var status = document.querySelector("[data-rsvp-status]");
       if (!status) return;
@@ -1937,16 +1956,14 @@
         setRsvpStatus("Guardando confirmacion...", false);
         await fetch(GOOGLE_SCRIPT_URL, {
           method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify(payload)
         });
         event.currentTarget.reset();
         event.currentTarget.elements.cantidad.value = 1;
-        setRsvpStatus("Confirmacion guardada. Gracias.", false);
+        setRsvpStatus("Gracias por confirmar tu asistencia.", false);
       } catch (error) {
         console.error("No se pudo confirmar asistencia", error);
-        setRsvpStatus("No se pudo guardar. Intenta de nuevo.", true);
+        setRsvpStatus("No se pudo confirmar. Intenta nuevamente.", true);
       }
     });
 
@@ -1974,7 +1991,7 @@
           var cantidad = Number(item.cantidad || item.personas || item.acompanantes) || 1;
           var telefono = item.telefono || item.phone || "";
           return '<div class="export-confirmation-item"><span>' + nombre + (telefono ? ' - ' + telefono : '') + '</span><strong>' + cantidad + '</strong></div>';
-        }).join("") + '<p class="export-confirmation-total">Total de personas: ' + total + '</p>' : "Todavia no hay confirmados.";
+        }).join("") + '<p class="export-confirmation-total">Total de personas: ' + total + '</p>' : "Aun no hay confirmaciones.";
       } catch (error) {
         console.error("No se pudieron leer confirmados", error);
         container.innerHTML = "No se pudieron leer los confirmados.";
