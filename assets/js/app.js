@@ -866,6 +866,17 @@
       .replace(/<head[\s\S]*?<\/head>/gi, "")
       .replace(/<\/?body[\s\S]*?>/gi, "");
   }
+
+  function stripStandaloneUnsafeMarkup(html) {
+    return stripFullDocumentMarkup(html)
+      .replace(/<script\b[^>]*\bsrc\s*=\s*["'][^"']*["'][^>]*>\s*<\/script>/gi, "")
+      .replace(/<script\b[^>]*\bsrc\s*=\s*[^\s>]+[^>]*>\s*<\/script>/gi, "")
+      .replace(/<link\b[^>]*>/gi, "")
+      .replace(/<iframe\b[\s\S]*?<\/iframe>/gi, "")
+      .replace(/assets\/js\/data\.js/gi, "")
+      .replace(/assets\/js\/app\.js/gi, "")
+      .replace(/data-page\s*=\s*["']invitation["']/gi, "");
+  }
   function buildInvitationTemplate(invitation) {
     const design = { ...DEFAULT_DESIGN, ...(invitation.design || {}) };
     const finalImage = getFinalInvitationImage(invitation);
@@ -1804,7 +1815,7 @@
   function buildStandaloneInvitationHtml(invitation, finalImage = null) {
     const design = { ...DEFAULT_DESIGN, ...(invitation.design || {}) };
     finalImage = finalImage || getExportedInvitationImage(invitation);
-    const customHtml = stripFullDocumentMarkup(replaceInvitationVariables(invitation.customHtml || "", invitation));
+    const customHtml = stripStandaloneUnsafeMarkup(replaceInvitationVariables(invitation.customHtml || "", invitation));
     const fallbackContent = `
       <div class="generated-content invitation-content">
         <p class="generated-kicker">${escapeHtml(invitation.tipo || "Evento")}</p>
@@ -2040,6 +2051,9 @@
         visualCanvasImage: finalImage
       });
       const html = buildStandaloneInvitationHtml(exportInvitationData, finalImage);
+      if (/assets\/js\/(app|data)\.js|No se encontr[oó] invitaci[oó]n con id|localStorage\.getItem/.test(html)) {
+        console.warn("El HTML exportado contiene referencias no standalone; revisa customHtml/customJs.");
+      }
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
