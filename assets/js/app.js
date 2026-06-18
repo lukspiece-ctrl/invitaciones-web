@@ -1794,9 +1794,9 @@
     return canvasImage || getFinalInvitationImage(invitation);
   }
 
-  function buildStandaloneInvitationHtml(invitation) {
+  function buildStandaloneInvitationHtml(invitation, finalImage = null) {
     const design = { ...DEFAULT_DESIGN, ...(invitation.design || {}) };
-    const finalImage = getExportedInvitationImage(invitation);
+    finalImage = finalImage || getExportedInvitationImage(invitation);
     const customHtml = stripFullDocumentMarkup(replaceInvitationVariables(invitation.customHtml || "", invitation));
     const fallbackContent = `
       <div class="generated-content invitation-content">
@@ -1892,17 +1892,60 @@
 </html>`;
   }
 
-  function exportPublicHtmlInvitation() {
-    const invitation = attachVisualDesignToInvitation(getProfessionalFormData());
-    const html = buildStandaloneInvitationHtml(invitation);
-    const filename = `${getInvitationPublicSlug(invitation) || "invitacion"}.html`;
-    downloadTextFile(filename, html, "text/html");
-    const message = document.getElementById("editorMessage");
-    if (message) {
-      message.className = "success-message";
-      message.textContent = "HTML publico exportado correctamente.";
+  function exportPublicHtml() {
+    console.log("Exportando HTML publico...");
+
+    try {
+      const invitation = getCurrentInvitationObject();
+      if (!invitation) {
+        alert("No se encontró la invitación actual.");
+        return;
+      }
+
+      let finalImage = invitation.visualCanvasImage || getVisualCanvasImageForInvitation(invitation);
+      const canvas = window.fabricCanvas || window.visualCanvas || visualEditorCanvas;
+      if (canvas) {
+        if (canvas.discardActiveObject) canvas.discardActiveObject();
+        if (canvas.renderAll) canvas.renderAll();
+        finalImage = canvas.toDataURL({
+          format: "png",
+          quality: 1,
+          multiplier: 1
+        });
+      }
+
+      if (!finalImage) {
+        alert("Primero guarda o genera la plantilla visual.");
+        return;
+      }
+
+      const exportInvitationData = attachVisualDesignToInvitation({
+        ...invitation,
+        visualCanvasImage: finalImage
+      });
+      const html = buildStandaloneInvitationHtml(exportInvitationData, finalImage);
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${exportInvitationData.slug || exportInvitationData.id || "invitacion"}.html`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      const message = document.getElementById("editorMessage");
+      if (message) {
+        message.className = "success-message";
+        message.textContent = "HTML publico exportado correctamente.";
+      }
+    } catch (error) {
+      console.error("Error al exportar HTML publico", error);
+      alert(`No se pudo exportar el HTML: ${error.message || error}`);
     }
   }
+
+  const exportPublicHtmlInvitation = exportPublicHtml;
   function importInvitation(file) {
     if (!file) return;
     const reader = new FileReader();
@@ -1936,6 +1979,7 @@
   window.duplicateInvitation = duplicateInvitation;
   window.deleteInvitation = deleteInvitation;
   window.exportInvitation = exportInvitation;
+  window.exportPublicHtml = exportPublicHtml;
   window.exportPublicHtmlInvitation = exportPublicHtmlInvitation;
   window.importInvitation = importInvitation;
   window.viewAsGuest = viewAsGuest;
@@ -2390,7 +2434,7 @@
     document.getElementById("duplicateInvitationButton").addEventListener("click", duplicateInvitation);
     document.getElementById("deleteInvitationButton").addEventListener("click", deleteInvitation);
     document.getElementById("exportInvitationButton").addEventListener("click", exportInvitation);
-    document.getElementById("exportPublicHtmlButton")?.addEventListener("click", exportPublicHtmlInvitation);
+    document.getElementById("exportPublicHtmlButton")?.addEventListener("click", exportPublicHtml);
     document.getElementById("importInvitationInput").addEventListener("change", (event) => importInvitation(event.target.files[0]));
     ["customHtml", "customCss", "customJs", "mainImage", "backgroundImage", "imageUrl", "uploadedImage"].forEach((fieldName) => {
       const field = form.elements[fieldName];
