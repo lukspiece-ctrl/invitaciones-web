@@ -75,7 +75,7 @@
     }
   };
 
-  const MAX_LOCAL_STORAGE_IMAGE_BYTES = 100 * 1024;
+  const MAX_LOCAL_STORAGE_IMAGE_BYTES = Number.POSITIVE_INFINITY;
   let storageWarningTimer = null;
 
   function showStorageWarning(message = "El almacenamiento del navegador esta lleno. Se guardaron solo datos livianos e imagenes por URL.") {
@@ -117,9 +117,7 @@
   }
 
   function keepStorageSafeImage(value) {
-    if (!value) return "";
-    if (isDataImage(value)) return "";
-    return value;
+    return value || "";
   }
 
   const setStoredJson = (key, value) => {
@@ -127,11 +125,6 @@
   };
 
   const trySetStorageValue = (key, value) => {
-    if (isLargeDataImage(value)) {
-      console.warn("Imagen omitida por superar 100 KB", key);
-      showStorageWarning("La imagen supera 100 KB. Usa una URL externa o exporta HTML para compartirla.");
-      return false;
-    }
     return safeSetItem(key, value);
   };
   function compressImageDataUrl(dataUrl, callback, options = {}) {
@@ -381,7 +374,9 @@
 
   function persistVisualCanvasImage(invitation, visualCanvasImage) {
     if (!invitation || !visualCanvasImage) return;
-    if (isLargeDataImage(visualCanvasImage)) showStorageWarning("La imagen final supera 100 KB y no se guardo en el navegador. Usa Exportar HTML publico.");
+    getInvitationStorageAliases(invitation).forEach((alias) => {
+      trySetStorageValue(getVisualCanvasImageKey(alias), visualCanvasImage);
+    });
   }
 
   function stripDataImagesFromVisualDesign(visualDesign) {
@@ -407,7 +402,6 @@
     const safeDesign = stripDataImagesFromVisualDesign(visualDesign);
     if (!safeDesign) return;
     const serializedDesign = JSON.stringify(safeDesign);
-    if (getStorageBytes(serializedDesign) > MAX_LOCAL_STORAGE_IMAGE_BYTES) return;
     getInvitationStorageAliases(invitation).forEach((alias) => {
       trySetStorageValue(getVisualDesignKey(alias), serializedDesign);
     });
@@ -415,10 +409,6 @@
 
   function persistVisualTemplateImage(invitation, visualTemplateImage) {
     if (!invitation || !visualTemplateImage) return;
-    if (isDataImage(visualTemplateImage)) {
-      if (isLargeDataImage(visualTemplateImage)) showStorageWarning("La plantilla supera 100 KB y no se guardo en el navegador. Usa una URL de imagen.");
-      return;
-    }
     getInvitationStorageAliases(invitation).forEach((alias) => {
       trySetStorageValue(getVisualTemplateImageKey(alias), visualTemplateImage);
     });
@@ -426,10 +416,6 @@
 
   function persistBirthdayPhotoImage(invitation, birthdayPhotoImage) {
     if (!invitation || !birthdayPhotoImage) return;
-    if (isDataImage(birthdayPhotoImage)) {
-      if (isLargeDataImage(birthdayPhotoImage)) showStorageWarning("La foto supera 100 KB y no se guardo en el navegador. Usa una URL de imagen.");
-      return;
-    }
     getInvitationStorageAliases(invitation).forEach((alias) => {
       trySetStorageValue(getBirthdayPhotoImageKey(alias), birthdayPhotoImage);
     });
