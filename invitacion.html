@@ -3,29 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Invitación</title>
+  <title>Invitación K-Pop Mágica</title>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 
-<body data-page="invitation" class="public-invitation-body">
-  <main class="public-invitation-page">
+<body data-page="invitation" class="public-invitation-body invitation-only-page">
 
-    <section class="public-invitation-wrapper" aria-label="Invitación">
-      <div id="invitationDetail" class="public-invitation-frame" aria-live="polite">
-        <noscript>
-          Para ver esta invitación necesitás activar JavaScript en tu navegador.
-        </noscript>
+  <main class="scene">
+    <section class="magic-card" id="magicCard" aria-label="Invitación K-Pop">
+
+      <div class="video-camera">
+        <img
+          src="assets/img/invitacion-kpop.png"
+          class="bg-img"
+          alt="Invitación K-Pop">
       </div>
+
+      <div class="party-lights">
+        <div class="spot spot-1"></div>
+        <div class="spot spot-2"></div>
+        <div class="spot spot-3"></div>
+        <div class="spot spot-4"></div>
+        <div class="spot spot-5"></div>
+        <div class="spot spot-6"></div>
+      </div>
+
+      <div class="dance-floor-flash"></div>
+      <div class="soft-pink-filter"></div>
+      <div class="cinematic-vignette"></div>
+
+      <div class="aurora aurora-1"></div>
+      <div class="aurora aurora-2"></div>
+
+      <div class="smoke smoke-1"></div>
+      <div class="smoke smoke-2"></div>
+
+      <div class="shine"></div>
+      <div class="sparkles"></div>
+      <div class="confetti-layer"></div>
+
+      <div class="invitation-text">
+        <p class="small-title">Estás invitado a celebrar</p>
+
+        <h1>Ana</h1>
+
+        <p class="subtitle">Una fiesta mágica estilo K-Pop</p>
+
+        <div class="info-box">
+          <p><strong>Fecha:</strong> 20 de julio</p>
+          <p><strong>Hora:</strong> 17:00 hs</p>
+          <p><strong>Lugar:</strong> Salón Magic Party</p>
+        </div>
+
+        <a href="#rsvp-section" class="confirm-btn">
+          Confirmar asistencia
+        </a>
+      </div>
+
     </section>
 
-    <section id="rsvp-section" class="public-rsvp-section landing-section rsvp-landing-section" aria-labelledby="confirmTitle">
-      <div class="form-panel premium-rsvp-card">
-        <div class="panel-heading centered-heading">
-          <div>
-            <p class="eyebrow">RSVP</p>
-            <h2 id="confirmTitle">Confirmar asistencia</h2>
-          </div>
-        </div>
+    <section id="rsvp-section" class="rsvp-section">
+      <div class="rsvp-card">
+        <p class="small-title">RSVP</p>
+        <h2>Confirmar asistencia</h2>
 
         <form id="rsvpForm" class="rsvp-form">
           <label>
@@ -40,6 +80,7 @@
 
           <fieldset>
             <legend>¿Asiste?</legend>
+
             <div class="radio-row">
               <label>
                 <input type="radio" name="asiste" value="Sí" checked>
@@ -63,7 +104,7 @@
             <textarea name="mensaje" rows="4" placeholder="Dejá un mensaje para los anfitriones"></textarea>
           </label>
 
-          <button type="submit" class="button primary">
+          <button type="submit" class="rsvp-submit">
             Confirmar asistencia
           </button>
 
@@ -71,15 +112,12 @@
         </form>
       </div>
     </section>
-
   </main>
 
-  <button id="floatingRsvpButton" class="floating-rsvp-button" type="button" aria-controls="rsvp-section">
+  <button id="floatingRsvpButton" class="floating-rsvp-button" type="button">
     Confirmar asistencia
   </button>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-  <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
 </body>
 </html>
