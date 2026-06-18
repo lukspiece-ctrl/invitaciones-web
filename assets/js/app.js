@@ -1122,6 +1122,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>${baseDocumentStyles()}</style>
   <style>${css}</style>
+  <style>
+    html, body { margin: 0 !important; min-height: 100vh !important; height: auto !important; overflow-x: hidden !important; overflow-y: auto !important; background: #170016 !important; }
+    body { display: block !important; padding: 0 !important; }
+    .public-invitation-page { width: 100% !important; min-height: 100vh !important; display: grid !important; gap: 18px !important; justify-items: center !important; padding: 32px 14px 60px !important; background: #170016 !important; }
+    .invitation-preview { width: min(92vw, 430px) !important; margin: 0 auto 36px !important; }
+    #custom-invitation-root { width: 100% !important; height: auto !important; overflow: visible !important; }
+    .generated-invitation.invitation-card { width: 100% !important; aspect-ratio: 9 / 16 !important; height: auto !important; min-height: 0 !important; overflow: hidden !important; border-radius: 18px !important; padding: 0 !important; }
+    .template-layer { width: 100% !important; height: 100% !important; object-fit: contain !important; display: block !important; }
+    .rsvp-actions { width: min(92vw, 430px) !important; margin: 0 auto !important; position: static !important; }
+    .rsvp-section { width: min(92vw, 430px) !important; margin: 90px auto 40px !important; position: static !important; }
+    .host-section { width: min(92vw, 430px) !important; margin: 0 auto !important; position: static !important; }
+    .rsvp-title, .scroll-rsvp-title { margin: 56px auto 28px !important; text-align: center !important; }
+    @media (max-width: 600px) { .public-invitation-page { padding-top: 72px !important; } }
+  </style>
 </head>
 <body>
   <section id="custom-invitation-root">
@@ -2017,17 +2031,19 @@
   <title>${escapeHtml(invitation.titulo || invitation.nombre || "Invitacion")}</title>
   <style>${baseDocumentStyles()}</style>
   <style>
-    html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; background: #111816; }
-    body { margin: 0; padding: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-    .public-invitation-page { width: 100%; min-height: 100vh; display: grid; gap: 18px; justify-items: center; padding: 16px 12px 34px; }
-    .invitation-preview { width: min(100vw, 430px); margin: 0 auto; }
+    html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; background: #170016; }
+    body { margin: 0; min-height: 100vh; padding: 0; overflow-x: hidden; overflow-y: auto; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    .public-invitation-page { width: 100%; min-height: 100vh; display: grid; gap: 18px; justify-items: center; padding: 32px 14px 60px; background: #170016; }
+    .invitation-preview { width: min(92vw, 430px); margin: 0 auto 36px; }
     #custom-invitation-root { width: 100%; height: auto; overflow: visible; }
-    .generated-invitation, .invitation-card { position: relative; width: 100%; aspect-ratio: 9 / 16; height: auto; min-height: 0; overflow: hidden; padding: 0; border-radius: 8px; background: #fff; box-shadow: 0 28px 90px rgba(0,0,0,.34); }
+    .generated-invitation, .invitation-card { position: relative; width: 100%; aspect-ratio: 9 / 16; height: auto; min-height: 0; overflow: hidden; padding: 0; border-radius: 18px; background: #fff; box-shadow: 0 28px 90px rgba(0,0,0,.34); }
     .template-layer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; border-radius: inherit; z-index: 1; background: #fff; }
     .custom-html-layer { pointer-events: auto; z-index: 10; }
-    .rsvp-actions, .rsvp-section, .host-section { width: min(100vw - 24px, 430px); margin: 0 auto; }
-    .rsvp-actions { display: grid; gap: 10px; }
+    .rsvp-actions, .host-section { width: min(92vw, 430px); margin: 0 auto; }
+    .rsvp-actions { display: grid; gap: 10px; margin-bottom: 0; }
+    .rsvp-section { width: min(92vw, 430px); margin: 90px auto 40px; position: static; }
     .rsvp-section, .host-section { padding: 18px; border-radius: 8px; background: #fff; color: #26302f; box-shadow: 0 18px 50px rgba(0,0,0,.18); }
+    .rsvp-title, .scroll-rsvp-title { margin: 56px auto 28px; text-align: center; }
     .rsvp-section h2, .host-section h2 { margin: 0 0 12px; font-size: 1.15rem; }
     .export-rsvp-form { display: grid; gap: 10px; }
     .export-rsvp-form label { display: grid; gap: 5px; font-size: .88rem; font-weight: 800; }
@@ -2038,9 +2054,23 @@
     .export-confirmations { display: grid; gap: 8px; margin-top: 12px; }
     .export-confirmation-item { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid rgba(38,48,47,.12); padding-bottom: 8px; }
     .export-confirmation-total { margin: 0 0 12px; font-weight: 900; }
-    @media (max-width: 520px) { .public-invitation-page { padding: 0 0 28px; } .invitation-preview { width: 100vw; } .generated-invitation, .invitation-card { border-radius: 0; box-shadow: none; } .rsvp-actions, .rsvp-section, .host-section { width: calc(100% - 24px); } }
+    @media (max-width: 600px) { .public-invitation-page { padding-top: 72px; } .invitation-preview { width: min(92vw, 430px); margin-bottom: 36px; } .generated-invitation, .invitation-card { border-radius: 18px; } .rsvp-actions, .rsvp-section, .host-section { width: min(92vw, 430px); } .rsvp-section { margin-top: 90px; } }
   </style>
   <style>${css}</style>
+  <style>
+    html, body { margin: 0 !important; min-height: 100vh !important; height: auto !important; overflow-x: hidden !important; overflow-y: auto !important; background: #170016 !important; }
+    body { display: block !important; padding: 0 !important; }
+    .public-invitation-page { width: 100% !important; min-height: 100vh !important; display: grid !important; gap: 18px !important; justify-items: center !important; padding: 32px 14px 60px !important; background: #170016 !important; }
+    .invitation-preview { width: min(92vw, 430px) !important; margin: 0 auto 36px !important; }
+    #custom-invitation-root { width: 100% !important; height: auto !important; overflow: visible !important; }
+    .generated-invitation.invitation-card { width: 100% !important; aspect-ratio: 9 / 16 !important; height: auto !important; min-height: 0 !important; overflow: hidden !important; border-radius: 18px !important; padding: 0 !important; }
+    .template-layer { width: 100% !important; height: 100% !important; object-fit: contain !important; display: block !important; }
+    .rsvp-actions { width: min(92vw, 430px) !important; margin: 0 auto !important; position: static !important; }
+    .rsvp-section { width: min(92vw, 430px) !important; margin: 90px auto 40px !important; position: static !important; }
+    .host-section { width: min(92vw, 430px) !important; margin: 0 auto !important; position: static !important; }
+    .rsvp-title, .scroll-rsvp-title { margin: 56px auto 28px !important; text-align: center !important; }
+    @media (max-width: 600px) { .public-invitation-page { padding-top: 72px !important; } }
+  </style>
 </head>
 <body>
   <main class="public-invitation-page">
