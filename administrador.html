@@ -107,7 +107,52 @@
         </div>
       </div>
 
-      <!-- ESTADÍSTICAS -->
+
+      <section class="share-invitation-card" data-share-section>
+        <div class="share-card-header">
+          <div>
+            <p class="eyebrow">Compartir</p>
+            <h2>Compartir invitacion</h2>
+          </div>
+          <button class="button primary native-share-button hidden" type="button" data-share-action="native">Compartir</button>
+        </div>
+
+        <div class="share-url-box">
+          <span>URL publica</span>
+          <strong data-share-url>https://dominio/invitacion.html?id=slug</strong>
+        </div>
+
+        <div class="share-actions-grid">
+          <button class="button secondary" type="button" data-share-action="copy">Copiar enlace</button>
+          <button class="button secondary" type="button" data-share-action="open">Abrir invitacion</button>
+          <button class="button secondary" type="button" data-share-action="whatsapp">WhatsApp</button>
+          <button class="button secondary" type="button" data-share-action="facebook">Facebook</button>
+          <button class="button secondary" type="button" data-share-action="telegram">Telegram</button>
+          <button class="button secondary" type="button" data-share-action="email">Email</button>
+        </div>
+
+        <p class="share-status" data-share-status role="status"></p>
+
+        <div class="share-preview-grid">
+          <article class="link-preview-card">
+            <p class="eyebrow">Vista previa del enlace</p>
+            <h3 data-share-title>Invitacion</h3>
+            <dl>
+              <div><dt>URL publica</dt><dd data-share-url-short>invitacion.html?id=slug</dd></div>
+              <div><dt>Slug</dt><dd data-share-slug>slug</dd></div>
+              <div><dt>Fecha</dt><dd data-share-date>Sin fecha</dd></div>
+            </dl>
+            <button class="button primary" type="button" data-share-action="open">Abrir</button>
+          </article>
+
+          <article class="qr-card">
+            <p class="eyebrow">Codigo QR</p>
+            <h3>Codigo QR</h3>
+            <img data-share-qr alt="Codigo QR de la invitacion">
+            <button class="button secondary" type="button" data-share-action="download-qr">Descargar QR PNG</button>
+          </article>
+        </div>
+      </section>      <!-- ESTADÍSTICAS -->
 
       <div class="stats-grid">
 

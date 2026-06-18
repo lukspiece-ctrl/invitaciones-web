@@ -91,9 +91,93 @@
         </div>
 
         <p class="public-url-preview">
-          URL publica:
+          URL pública:
           <strong id="createPublicUrl">invitacion.html?id=</strong>
         </p>
+
+        <section class="media-template-panel">
+          <div class="panel-heading small-heading">
+            <div>
+              <p class="eyebrow">Plantilla e imágenes</p>
+              <h2>Personalización visual</h2>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              Plantilla
+              <select name="plantilla" id="templateSelect">
+                <option value="premium-floral">Premium floral</option>
+                <option value="infantil">Infantil</option>
+                <option value="elegante-oscura">Elegante oscura</option>
+                <option value="minimalista">Minimalista</option>
+                <option value="foto-principal">Foto principal</option>
+                <option value="baby-shower">Baby Shower</option>
+                <option value="boda">Boda</option>
+              </select>
+            </label>
+
+            <label>
+              Foto principal por URL
+              <input type="url" name="fotoPrincipal" placeholder="https://.../foto.jpg">
+            </label>
+
+            <label>
+              Imagen de fondo por URL
+              <input type="url" name="imagenFondo" placeholder="https://.../fondo.jpg">
+            </label>
+
+            <label>
+              Imagen decorativa por URL
+              <input type="url" name="imagenDecorativa" placeholder="https://.../flores.png">
+            </label>
+
+            <label>
+              Subir foto principal
+              <input type="file" id="fotoPrincipalFile" accept="image/*">
+              <input type="hidden" name="fotoPrincipalBase64">
+            </label>
+
+            <label>
+              Subir imagen de fondo
+              <input type="file" id="imagenFondoFile" accept="image/*">
+              <input type="hidden" name="imagenFondoBase64">
+            </label>
+
+            <label>
+              Subir imagen decorativa
+              <input type="file" id="imagenDecorativaFile" accept="image/*">
+              <input type="hidden" name="imagenDecorativaBase64">
+            </label>
+          </div>
+
+          <div class="image-preview-grid">
+            <figure>
+              <span>Foto principal</span>
+              <img id="fotoPrincipalPreview" src="" alt="Vista previa de foto principal">
+            </figure>
+
+            <figure>
+              <span>Fondo</span>
+              <img id="imagenFondoPreview" src="" alt="Vista previa de imagen de fondo">
+            </figure>
+
+            <figure>
+              <span>Decoración</span>
+              <img id="imagenDecorativaPreview" src="" alt="Vista previa de imagen decorativa">
+            </figure>
+          </div>
+
+          <div class="template-help">
+            <p>
+              Variables disponibles para imágenes:
+              <code>{{fotoPrincipal}}</code>,
+              <code>{{imagenFondo}}</code>,
+              <code>{{imagenDecorativa}}</code>,
+              <code>{{plantilla}}</code>
+            </p>
+          </div>
+        </section>
 
         <div class="code-editor-stack">
           <label>
@@ -114,7 +198,7 @@
 
         <div class="button-row">
           <button class="button secondary" id="previewButton" type="button">Vista previa</button>
-          <button class="button secondary" id="copyCreatePublicLinkButton" type="button">Copiar enlace publico</button>
+          <button class="button secondary" id="copyCreatePublicLinkButton" type="button">Copiar enlace público</button>
           <button class="button primary" type="submit">Guardar invitación</button>
         </div>
 
