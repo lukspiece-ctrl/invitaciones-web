@@ -4,6 +4,21 @@
   const DELETED_INVITATIONS_KEY = "deleted_invitations";
   const SIDEBAR_COLLAPSED_KEY = "sidebar_collapsed";
   const DEFAULT_GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw8mAYwwCzTA1q_uGnhtX0Jsu0AYNw8i93DO-jppIhAzqNEeo42RXFS_kVqurJSH0tx/exec";
+  const DESIGN_CANVAS_PRESETS = {
+    "mobile-invitation": { label: "Invitacion movil", width: 390, height: 844 },
+    "birthday": { label: "Cumpleanos", width: 390, height: 844 },
+    "wedding": { label: "Boda", width: 390, height: 844 },
+    "baptism": { label: "Bautismo", width: 390, height: 844 },
+    "event": { label: "Evento", width: 390, height: 844 },
+    "instagram-post": { label: "Instagram Post", width: 1080, height: 1080 },
+    "instagram-story": { label: "Instagram Story", width: 1080, height: 1920 },
+    "whatsapp-status": { label: "WhatsApp Status", width: 1080, height: 1920 },
+    "facebook-post": { label: "Facebook Post", width: 1200, height: 1200 },
+    "facebook-banner": { label: "Facebook Banner", width: 1200, height: 628 },
+    "web-banner": { label: "Banner Web", width: 1920, height: 1080 },
+    "landing-mobile": { label: "Landing Mobile", width: 390, height: 844 },
+    "landing-mobile": { label: "Landing Mobile", width: 390, height: 844 }
+  };
   const DEFAULT_DESIGN = {
     primaryColor: "#3f7d72",
     secondaryColor: "#c4765c",
@@ -659,7 +674,37 @@
     }
   }
 
-  function renderFabricDesignToDataUrl(visualDesign) {
+  function prepareVisualDesignForLoad(visualDesign, sources = {}) {
+    if (!visualDesign) return visualDesign;
+    let design;
+    try {
+      design = typeof visualDesign === "string" ? JSON.parse(visualDesign) : JSON.parse(JSON.stringify(visualDesign));
+    } catch (error) {
+      return visualDesign;
+    }
+    if (!Array.isArray(design.objects)) return design;
+    design.objects = design.objects
+      .map((object) => {
+        if (object.type !== "image") return object;
+        if (object.visualRole === "sticker" && object.elementSrc && !object.src && object.type === "image") {
+          return { ...object, src: object.elementSrc };
+        }
+        if (object.visualRole === "sticker" && object.elementSrc && !object.src && object.type === "image") {
+          return { ...object, src: object.elementSrc };
+        }
+        if (object.visualRole === "backgroundTemplate" && sources.visualTemplateImage) {
+          return { ...object, src: sources.visualTemplateImage };
+        }
+        if ((object.visualRole === "birthdayPhoto" || object.visualRole === "photo") && sources.birthdayPhotoImage) {
+          return { ...object, src: sources.birthdayPhotoImage };
+        }
+        return object;
+      })
+      .filter((object) => object.type !== "image" || object.src);
+    return design;
+  }
+
+  function renderFabricDesignToDataUrl(visualDesign, sources = {}) {
     return new Promise((resolve) => {
       if (!visualDesign || !window.fabric) {
         resolve("");
@@ -667,8 +712,11 @@
       }
 
       const canvasElement = document.createElement("canvas");
-      canvasElement.width = 720;
-      canvasElement.height = 1280;
+      const preparedDesign = prepareVisualDesignForLoad(visualDesign, sources);
+      const renderWidth = Math.round(Number(preparedDesign?.canvasWidth) || 390);
+      const renderHeight = Math.round(Number(preparedDesign?.canvasHeight) || 844);
+      canvasElement.width = renderWidth;
+      canvasElement.height = renderHeight;
       canvasElement.style.position = "fixed";
       canvasElement.style.left = "-9999px";
       canvasElement.style.top = "0";
@@ -677,11 +725,11 @@
 
       try {
         const staticCanvas = new window.fabric.StaticCanvas(canvasElement, {
-          width: 720,
-          height: 1280,
+          width: renderWidth,
+          height: renderHeight,
           backgroundColor: "#ffffff"
         });
-        staticCanvas.loadFromJSON(visualDesign, () => {
+        staticCanvas.loadFromJSON(preparedDesign, () => {
           try {
             staticCanvas.renderAll();
             const dataUrl = staticCanvas.toDataURL({ format: "jpeg", quality: 0.86, multiplier: 1 });
@@ -731,7 +779,7 @@
     };
 
     if (hydratedInvitation.visualDesign) {
-      const generatedImage = await renderFabricDesignToDataUrl(hydratedInvitation.visualDesign);
+      const generatedImage = await renderFabricDesignToDataUrl(hydratedInvitation.visualDesign, hydratedInvitation);
       if (generatedImage) {
         hydratedInvitation.visualCanvasImage = generatedImage;
         persistVisualCanvasImage(hydratedInvitation, generatedImage);
@@ -934,7 +982,7 @@
     invitation.visualCanvasImage = png;
     invitation.visualTemplateImage = invitation.visualTemplateImage || activeEditorInvitation?.visualTemplateImage || localStorage.getItem(getVisualTemplateImageKey(invitationId)) || "";
     invitation.birthdayPhotoImage = invitation.birthdayPhotoImage || activeEditorInvitation?.birthdayPhotoImage || localStorage.getItem(getBirthdayPhotoImageKey(invitationId)) || "";
-    invitation.visualDesign = canvas.toJSON ? canvas.toJSON(["visualRole", "selectable", "evented", "lockMovementX", "lockMovementY", "lockRotation", "lockScalingX", "lockScalingY"]) : invitation.visualDesign;
+    invitation.visualDesign = canvas.toJSON ? getSerializedVisualDesign() : invitation.visualDesign;
     persistVisualCanvasImage(invitation, png);
     if (invitation.visualDesign) persistVisualDesign(invitation, invitation.visualDesign);
 
@@ -1004,9 +1052,78 @@
       .replace(/assets\/js\/app\.js/gi, "")
       .replace(/data-page\s*=\s*["']invitation["']/gi, "");
   }
+  function getVisualDesignObjects(invitation = {}) {
+    const design = getVisualDesignForInvitation(invitation);
+    if (!design) return [];
+    try {
+      const parsed = typeof design === "string" ? JSON.parse(design) : design;
+      return Array.isArray(parsed.objects) ? parsed.objects : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function buildVisualRuntimeStyles() {
+    return `
+      .premium-effects-layer { position:absolute; inset:0; z-index:6; pointer-events:none; overflow:hidden; border-radius:inherit; }
+      .premium-effect-dot { position:absolute; width:10px; height:10px; border-radius:999px; opacity:.85; animation: premiumFloat var(--fx-duration, 5s) ease-in-out infinite; box-shadow:0 0 18px currentColor; }
+      .premium-effect-shape { position:absolute; opacity:.82; animation: premiumFloat var(--fx-duration, 5s) ease-in-out infinite; filter: drop-shadow(0 0 12px currentColor); }
+      .premium-component-layer { position:absolute; inset:0; z-index:12; pointer-events:none; border-radius:inherit; }
+      .premium-component { position:absolute; transform:translate(-50%,-50%); min-width:150px; padding:10px 12px; border-radius:16px; border:1px solid rgba(255,255,255,.55); background:rgba(255,255,255,.9); color:#26302f; font:700 13px Inter,system-ui,sans-serif; text-align:center; box-shadow:0 12px 35px rgba(0,0,0,.18); pointer-events:auto; text-decoration:none; }
+      .premium-music-button { cursor:pointer; }
+      @keyframes premiumFloat { 0%,100%{ transform:translateY(0) scale(1); } 50%{ transform:translateY(calc(var(--fx-intensity, 10px) * -1)) scale(1.06); } }
+      @keyframes premiumSpin { to { transform:rotate(360deg); } }
+      @keyframes premiumBlink { 0%,100%{ opacity:.95; } 50%{ opacity:.22; } }
+      @keyframes premiumPulse { 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.5); } }
+    `;
+  }
+
+  function buildVisualRuntimeOverlay(invitation = {}) {
+    const objects = getVisualDesignObjects(invitation);
+    const effects = objects.filter((object) => object.visualRole === "visualEffect");
+    const components = objects.filter((object) => object.visualRole === "interactiveComponent");
+    if (!effects.length && !components.length) return "";
+    const effectHtml = effects.map((effect, effectIndex) => {
+      const type = effect.effectType || "sparkles";
+      const color = type === "hearts" ? "#ff4f9a" : type === "snow" ? "#ffffff" : type === "confetti" ? "#ffd447" : type === "lights" ? "#ff8bd1" : "#fff3a8";
+      const count = type === "fireworks" ? 18 : type === "smoke" ? 10 : 22;
+      return Array.from({ length: count }, (_, index) => {
+        const left = (index * 37 + effectIndex * 11) % 100;
+        const top = (index * 23 + effectIndex * 17) % 100;
+        const duration = 3 + ((index + effectIndex) % 5);
+        const size = type === "confetti" ? 9 : type === "smoke" ? 28 : 8 + ((index + effectIndex) % 10);
+        const symbol = type === "hearts" ? "*" : (type === "stars" || type === "sparkles" || type === "magic") ? "*" : type === "confetti" ? "#" : "";
+        if (symbol) return `<span class="premium-effect-shape" style="left:${left}%;top:${top}%;color:${color};font-size:${size + 8}px;--fx-duration:${duration}s;--fx-intensity:${10 + index % 18}px;">${symbol}</span>`;
+        return `<span class="premium-effect-dot" style="left:${left}%;top:${top}%;width:${size}px;height:${size}px;color:${color};background:${color};--fx-duration:${duration}s;--fx-intensity:${10 + index % 18}px;"></span>`;
+      }).join("");
+    }).join("");
+    const componentHtml = components.map((component) => {
+      const left = Math.max(8, Math.min(92, ((component.left || 360) / VISUAL_CANVAS_WIDTH) * 100));
+      const top = Math.max(8, Math.min(92, ((component.top || 640) / VISUAL_CANVAS_HEIGHT) * 100));
+      const label = escapeHtml(component.elementName || VISUAL_COMPONENT_LABELS[component.componentType] || "Componente");
+      const url = escapeHtml(component.componentUrl || "");
+      if (component.componentType === "music") return `<button class="premium-component premium-music-button" type="button" data-audio-url="${url}" data-autoplay="${component.componentAutoplay ? "true" : "false"}" style="left:${left}%;top:${top}%">Play ${label}</button>`;
+      if (["map", "location"].includes(component.componentType)) return `<a class="premium-component" href="${url || escapeHtml(invitation.googleMapsUrl || "#")}" target="_blank" rel="noopener" style="left:${left}%;top:${top}%">${label}</a>`;
+      if (component.componentType === "whatsapp") return `<a class="premium-component" href="https://wa.me/${String(invitation.telefono || "").replace(/\D/g, "")}" target="_blank" rel="noopener" style="left:${left}%;top:${top}%">${label}</a>`;
+      if (component.componentType === "call") return `<a class="premium-component" href="tel:${escapeHtml(invitation.telefono || "")}" style="left:${left}%;top:${top}%">${label}</a>`;
+      if (component.componentType === "countdown") return `<div class="premium-component" data-countdown="${escapeHtml(invitation.fecha || "")}" style="left:${left}%;top:${top}%">${label}<br><span data-countdown-value>Calculando...</span></div>`;
+      if (component.componentType === "rsvp") return `<button class="premium-component" type="button" data-scroll-rsvp style="left:${left}%;top:${top}%">${label}</button>`;
+      return `<div class="premium-component" style="left:${left}%;top:${top}%">${label}</div>`;
+    }).join("");
+    return `<div class="premium-effects-layer">${effectHtml}</div><div class="premium-component-layer">${componentHtml}</div>`;
+  }
+
+  function buildVisualRuntimeScript() {
+    return `
+      document.querySelectorAll("[data-scroll-rsvp]").forEach(function(button){ button.addEventListener("click", function(){ document.getElementById("rsvpSection")?.scrollIntoView({ behavior:"smooth", block:"start" }); }); });
+      document.querySelectorAll("[data-countdown]").forEach(function(node){ var target=node.getAttribute("data-countdown"); var value=node.querySelector("[data-countdown-value]"); if(!target||!value)return; function tick(){ var diff=new Date(target+"T00:00:00").getTime()-Date.now(); if(diff<0) diff=0; var d=Math.floor(diff/86400000); var h=Math.floor(diff/3600000)%24; var m=Math.floor(diff/60000)%60; var s=Math.floor(diff/1000)%60; value.textContent=d+"d "+h+"h "+m+"m "+s+"s"; } tick(); setInterval(tick,1000); });
+      document.querySelectorAll(".premium-music-button").forEach(function(button){ var audio; function ensureAudio(){ if(audio)return audio; audio=new Audio(button.dataset.audioUrl||""); audio.loop=true; return audio; } if(button.dataset.autoplay==="true"&&button.dataset.audioUrl){ ensureAudio().play().catch(function(){}); } button.addEventListener("click",function(){ var player=ensureAudio(); if(player.paused){ player.play(); button.textContent="Pausar Musica"; } else { player.pause(); button.textContent="Play Musica"; } }); });
+    `;
+  }
   function buildInvitationTemplate(invitation) {
     const design = { ...DEFAULT_DESIGN, ...(invitation.design || {}) };
     const finalImage = getFinalInvitationImage(invitation);
+    const visualRuntimeOverlay = buildVisualRuntimeOverlay(invitation);
     const animationClass = design.animation && design.animation !== "none" ? ` animation-${design.animation}` : "";
     const effectLayers = animationClass
       ? `
@@ -1080,6 +1197,7 @@
   function buildCustomInvitationDocument(invitation) {
     const design = { ...DEFAULT_DESIGN, ...(invitation.design || {}) };
     const finalImage = getFinalInvitationImage(invitation);
+    const visualRuntimeOverlay = buildVisualRuntimeOverlay(invitation);
     const customHtml = stripFullDocumentMarkup(replaceInvitationVariables(invitation.customHtml || "", invitation));
     const fallbackContent = `
       <div class="generated-content invitation-content">
@@ -1107,6 +1225,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>${baseDocumentStyles()}</style>
+  <style>${buildVisualRuntimeStyles()}</style>
   <style>${css}</style>
   <style id="export-mobile-layout-fix">
     html, body { margin: 0 !important; min-height: 100svh !important; height: auto !important; overflow-x: hidden !important; overflow-y: auto !important; background: #170016 !important; }
@@ -1141,6 +1260,7 @@
   <section id="custom-invitation-root">
     <div class="generated-invitation invitation-card typography-${escapeHtml(design.typography)}${animationClass}" style="--inv-primary:${escapeHtml(design.primaryColor)}; --inv-secondary:${escapeHtml(design.secondaryColor)}; --inv-text:${escapeHtml(design.textColor)}; --inv-button:${escapeHtml(design.buttonColor)};">
       ${finalImage ? `<img class="template-layer" src="${escapeHtml(finalImage)}" alt="Invitacion">` : `<p class="missing-template-message">Invitación encontrada, pero no tiene imagen guardada.</p>`}
+          ${visualRuntimeOverlay}
       ${effectLayers}
       <div class="custom-html-layer">${contentHtml}</div>
     </div>
@@ -1164,6 +1284,7 @@
         layer.appendChild(sparkle);
       }
     });
+    ${buildVisualRuntimeScript()}
     try {
       ${escapeScript(js)}
     } catch (error) {
@@ -1316,6 +1437,30 @@
     });
   }
 
+  function initEditorShareModal() {
+    const modal = document.getElementById("shareInvitationModal");
+    const openButton = document.getElementById("shareInvitationButton");
+    if (!modal || !openButton || modal.dataset.modalReady === "true") return;
+
+    const closeButtons = modal.querySelectorAll("[data-share-modal-close]");
+    const closeModal = () => {
+      modal.hidden = true;
+      document.body.classList.remove("share-modal-open");
+      openButton.focus();
+    };
+    const openModal = () => {
+      modal.hidden = false;
+      document.body.classList.add("share-modal-open");
+      (modal.querySelector("[data-share-action='copy']") || modal.querySelector(".share-modal-close"))?.focus();
+    };
+
+    modal.dataset.modalReady = "true";
+    openButton.addEventListener("click", openModal);
+    closeButtons.forEach((button) => button.addEventListener("click", closeModal));
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.hidden) closeModal();
+    });
+  }
   function getHomeInvitationItems() {
     return getAllInvitations();
   }
@@ -1349,24 +1494,38 @@
     return true;
   }
 
-  function createNewInvitation() {
-    const id = normalizeId(`invitacion-${Date.now().toString(36)}`);
+  function createNewInvitation(options = {}) {
+    const id = normalizeId(`diseno-${Date.now().toString(36)}`);
     const today = new Date().toISOString().slice(0, 10);
+    const presetKey = options.preset || "mobile-invitation";
+    const preset = presetKey === "custom"
+      ? { label: "Tamano personalizado", width: Number(options.width) || 390, height: Number(options.height) || 844 }
+      : (DESIGN_CANVAS_PRESETS[presetKey] || DESIGN_CANVAS_PRESETS["mobile-invitation"]);
+    const title = options.title || preset.label || "Nuevo diseno";
+    const visualDesign = {
+      version: "5.3.1",
+      objects: [],
+      background: "#ffffff",
+      canvasWidth: preset.width,
+      canvasHeight: preset.height,
+      canvasPreset: presetKey
+    };
+
     saveCustomInvitation({
       id,
       slug: id,
       url: id,
-      titulo: "Nueva invitación",
-      tipo: "Evento",
+      titulo: title,
+      tipo: title,
       anfitrion: "",
-      nombre: "",
+      nombre: title,
       edad: "",
       fecha: today,
       hora: "",
       lugar: "",
       direccion: "",
       telefono: "",
-      descripcion: "Invitación personalizada.",
+      descripcion: "Diseno creado desde el editor visual.",
       adminPassword: "",
       customHtml: "",
       customCss: "",
@@ -1375,11 +1534,33 @@
       visualCanvasImage: "",
       visualTemplateImage: "",
       birthdayPhotoImage: "",
-      visualDesign: null
+      visualDesign,
+      designType: presetKey,
+      templateChoice: options.templateChoice || "blank",
+      status: "Borrador",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
     window.location.href = buildUrl("editor.html", { id });
   }
 
+
+  function duplicateHomeDesign(id) {
+    const invitation = getInvitationById(id);
+    if (!invitation) return;
+    const nextId = normalizeId(`${invitation.slug || invitation.id || "diseno"}-copia-${Date.now().toString(36)}`);
+    saveCustomInvitation({
+      ...invitation,
+      id: nextId,
+      slug: nextId,
+      url: nextId,
+      titulo: `${invitation.titulo || "Diseno"} copia`,
+      status: "Borrador",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    window.location.href = buildUrl("editor.html", { id: nextId });
+  }
   function renderInvitationCards() {
     const list = document.getElementById("invitationList");
     const count = document.getElementById("invitationCount");
@@ -1423,13 +1604,93 @@
     }).join("");
   }
 
+  function initHomeLandingAnimations() {
+    const revealItems = document.querySelectorAll("[data-reveal]");
+    if (!revealItems.length) return;
+
+    if (!("IntersectionObserver" in window)) {
+      revealItems.forEach((item) => item.classList.add("is-visible"));
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.16 });
+
+    revealItems.forEach((item) => observer.observe(item));
+  }
+
+  function initDesignSelector() {
+    const modal = document.getElementById("designSelectorModal");
+    if (!modal) return;
+    const templatePanel = document.getElementById("templateChoicePanel");
+    const customSizePanel = document.getElementById("homeCustomDesignSize");
+    let selectedDesign = { preset: "mobile-invitation", title: "Invitacion movil" };
+
+    const openModal = (event) => {
+      event?.preventDefault();
+      modal.hidden = false;
+      document.body.classList.add("design-selector-open");
+    };
+
+    const closeModal = () => {
+      modal.hidden = true;
+      document.body.classList.remove("design-selector-open");
+      if (templatePanel) templatePanel.hidden = true;
+    };
+
+    document.querySelectorAll("[data-open-design-selector]").forEach((trigger) => {
+      trigger.addEventListener("click", openModal);
+    });
+
+    modal.querySelectorAll("[data-close-design-selector]").forEach((trigger) => {
+      trigger.addEventListener("click", closeModal);
+    });
+
+    modal.querySelectorAll("[data-design-preset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedDesign = {
+          preset: button.dataset.designPreset || "mobile-invitation",
+          title: button.dataset.designTitle || button.textContent.trim() || "Nuevo diseno"
+        };
+        modal.querySelectorAll("[data-design-preset]").forEach((item) => item.classList.toggle("active", item === button));
+        if (templatePanel) templatePanel.hidden = false;
+        if (customSizePanel) customSizePanel.hidden = selectedDesign.preset !== "custom";
+      });
+    });
+
+    modal.querySelectorAll("[data-template-choice]").forEach((button) => {
+      button.addEventListener("click", () => {
+        createNewInvitation({
+          ...selectedDesign,
+          templateChoice: button.dataset.templateChoice || "blank",
+          width: document.getElementById("homeCustomWidth")?.value,
+          height: document.getElementById("homeCustomHeight")?.value
+        });
+      });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !modal.hidden) closeModal();
+    });
+  }
   function renderHome() {
     renderInvitationCards();
-    document.getElementById("createInvitationButton")?.addEventListener("click", createNewInvitation);
+    initDesignSelector();
+    initHomeLandingAnimations();
     document.getElementById("invitationList")?.addEventListener("click", (event) => {
       const actionButton = event.target.closest("[data-home-action]");
       if (!actionButton) return;
-      if (actionButton.dataset.homeAction === "create") createNewInvitation();
+      if (actionButton.dataset.homeAction === "create") {
+        const selectorTrigger = document.querySelector("[data-open-design-selector]");
+        if (selectorTrigger) selectorTrigger.click();
+        else createNewInvitation();
+      }
+      if (actionButton.dataset.homeAction === "duplicate") duplicateHomeDesign(actionButton.dataset.invitationId);
       if (actionButton.dataset.homeAction === "delete") deleteInvitation(actionButton.dataset.invitationId);
     });
   }
@@ -1467,18 +1728,11 @@
         "Todas las claves localStorage": Object.keys(localStorage),
         "IDs disponibles": getAvailableInvitationIds()
       });
-      detail.innerHTML = `
-        <div class="empty-state">
-          <h1>No se encontró invitación con id: ${escapeHtml(id || "")}</h1>
-          <p>Revisa el enlace o vuelve al listado principal.</p>
-        </div>
-      `;
-      document.getElementById("rsvp-section")?.classList.add("hidden");
-      floatingRsvpButton?.classList.add("hidden");
+      detail.innerHTML = `<div class="empty-state"><h1>No se encontro invitacion con id: ${escapeHtml(id || "")}</h1><p>Revisa el enlace o vuelve al listado principal.</p></div>`;
+      if (form) form.classList.add("hidden");
       return;
     }
-
-    invitation = await hydrateInvitationVisualAssets(invitation, id);
+invitation = await hydrateInvitationVisualAssets(invitation, id);
     console.log("ID usado:", id);
     console.log("visualCanvasImage en invitación:", !!invitation.visualCanvasImage);
     console.log("INVITACION PUBLICA:", invitation);
@@ -1558,9 +1812,9 @@
     if (!invitation) {
       adminGate.innerHTML = `
         <div class="empty-state">
-          <h1>Invitación no encontrada</h1>
-          <p>Abre el panel desde una invitación existente.</p>
-          <a class="button primary" href="index.html">Volver al inicio</a>
+          <h1>Diseño no encontrado</h1>
+          <p>Abre el panel desde un diseño existente.</p>
+          <a class="button primary" href="index.html#invitaciones">Mis diseños</a>
         </div>
       `;
       return;
@@ -1569,18 +1823,12 @@
     document.title = `Admin | ${invitation.titulo}`;
     document.getElementById("adminEventTitle").textContent = invitation.titulo;
     document.getElementById("editInvitationLink").href = buildUrl("editor.html", { id: invitation.id });
-    const publicLink = getPublicInvitationUrl(invitation);
-    const copyPublicLinkButton = document.getElementById("copyPublicLinkButton");
-    document.getElementById("adminPublicUrl").textContent = publicLink;
-    const viewInvitationLink = document.getElementById("viewInvitationLink");
-    if (viewInvitationLink) viewInvitationLink.href = getPublicInvitationUrl(invitation);
-    initShareSection(invitation);
 
     document.getElementById("adminLoginForm").addEventListener("submit", (event) => {
       event.preventDefault();
       const password = new FormData(event.currentTarget).get("password");
       if (password !== invitation.adminPassword) {
-        document.getElementById("loginMessage").textContent = "Contraseña incorrecta.";
+        document.getElementById("loginMessage").textContent = "Contrasena incorrecta.";
         return;
       }
       document.getElementById("loginMessage").textContent = "";
@@ -1593,328 +1841,6 @@
       alert("Las confirmaciones se guardan en Google Sheets. Borralas desde la hoja de calculo o Apps Script.");
       renderAdminTable(invitation);
     });
-
-    copyPublicLinkButton.addEventListener("click", async () => {
-      try {
-        await copyPublicUrl(invitation);
-        copyPublicLinkButton.textContent = "Link copiado";
-      } catch (error) {
-        copyPublicLinkButton.textContent = publicLink;
-      }
-      setTimeout(() => {
-        copyPublicLinkButton.textContent = "Copiar enlace publico";
-      }, 1600);
-    });
-  }
-
-  function getSimpleEditorFormData(form, existing = {}) {
-    const formData = new FormData(form);
-    const id = getSlugFromFormData(formData, existing.id || "");
-    return normalizeInvitation({
-      ...existing,
-      id,
-      slug: id,
-      titulo: fieldValue(formData, "titulo"),
-      tipo: fieldValue(formData, "tipo"),
-      anfitrion: fieldValue(formData, "anfitrion"),
-      nombre: fieldValue(formData, "nombre"),
-      edad: fieldValue(formData, "edad"),
-      fecha: fieldValue(formData, "fecha"),
-      hora: fieldValue(formData, "hora"),
-      lugar: fieldValue(formData, "lugar"),
-      direccion: fieldValue(formData, "direccion"),
-      telefono: fieldValue(formData, "telefono"),
-      googleMapsUrl: fieldValue(formData, "googleMapsUrl"),
-      googleScriptUrl: fieldValue(formData, "googleScriptUrl"),
-      descripcion: fieldValue(formData, "descripcion"),
-      adminPassword: fieldValue(formData, "adminPassword"),
-      customHtml: fieldValue(formData, "customHtml"),
-      customCss: fieldValue(formData, "customCss"),
-      customJs: fieldValue(formData, "customJs")
-    });
-  }
-
-  function setupCreatePreview(form) {
-    const preview = document.getElementById("customPreview");
-    if (!preview) return;
-    const renderPreview = () => {
-      preview.srcdoc = buildCustomInvitationDocument(getSimpleEditorFormData(form));
-    };
-    document.getElementById("previewButton").addEventListener("click", renderPreview);
-    form.addEventListener("input", renderPreview);
-    renderPreview();
-  }
-
-  function setupCreatePublicUrl(form) {
-    const output = document.getElementById("createPublicUrl");
-    const copyButton = document.getElementById("copyCreatePublicLinkButton");
-    if (!output || !copyButton) return;
-
-    const updateUrl = () => {
-      const formData = new FormData(form);
-      const slug = getSlugFromFormData(formData);
-      output.textContent = slug ? getPublicInvitationUrl(slug) : "invitacion.html?id=";
-      return slug;
-    };
-
-    form.addEventListener("input", (event) => {
-      if (event.target.name === "slug") sanitizeSlugInput(event.target);
-      updateUrl();
-    });
-    copyButton.addEventListener("click", async () => {
-      const slug = updateUrl();
-      if (!slug) return;
-      try {
-        await copyPublicUrl(slug);
-        copyButton.textContent = "Enlace copiado";
-      } catch (error) {
-        copyButton.textContent = getPublicInvitationUrl(slug);
-      }
-      setTimeout(() => {
-        copyButton.textContent = "Copiar enlace publico";
-      }, 1600);
-    });
-    updateUrl();
-  }
-
-  function renderCreate() {
-    const form = document.getElementById("invitationEditorForm");
-    const message = document.getElementById("editorMessage");
-    setupCreatePreview(form);
-    setupCreatePublicUrl(form);
-
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const invitation = getSimpleEditorFormData(form);
-      if (!invitation.slug || !validateSlug(invitation.slug)) {
-        message.className = "error-message";
-        message.textContent = "La URL personalizada solo puede usar letras minusculas, numeros y guiones.";
-        return;
-      }
-      if (!isSlugAvailable(invitation.slug)) {
-        message.className = "error-message";
-        message.textContent = "Ya existe una invitacion con esa URL personalizada.";
-        return;
-      }
-      const savedInvitation = saveCustomInvitation(invitation);
-      debugInvitationFlow("renderCreate submit", {
-        formId: invitation.id,
-        formSlug: invitation.slug,
-        savedId: savedInvitation.id,
-        savedSlug: savedInvitation.slug,
-        savedUrl: savedInvitation.url,
-        publicUrl: getPublicInvitationUrl(savedInvitation)
-      });
-      message.className = "success-message";
-      message.innerHTML = `Invitacion guardada. <a href="${getPublicInvitationUrl(savedInvitation)}">Ver invitacion</a>`;
-    });
-  }
-
-  function getProfessionalFormData() {
-    const form = document.getElementById("professionalEditorForm");
-    const formData = new FormData(form);
-    const fields = Object.fromEntries(formData.entries());
-    const existingInvitation = activeEditorInvitation || {};
-    const id = existingInvitation.id || generateSlug(fields.id || `inv-${Date.now()}`);
-    const slug = generateSlug(fields.slug || existingInvitation.slug || fields.titulo || id);
-    const design = {
-      primaryColor: fields.primaryColor || DEFAULT_DESIGN.primaryColor,
-      secondaryColor: fields.secondaryColor || DEFAULT_DESIGN.secondaryColor,
-      textColor: fields.textColor || DEFAULT_DESIGN.textColor,
-      buttonColor: fields.buttonColor || DEFAULT_DESIGN.buttonColor,
-      mainImage: fieldValue(formData, "mainImage"),
-      backgroundImage: fieldValue(formData, "backgroundImage"),
-      uploadedImage: fieldValue(formData, "uploadedImage"),
-      imageUrl: fieldValue(formData, "imageUrl"),
-      animation: fields.animation || "none",
-      typography: fields.typography || "classic"
-    };
-    const invitation = normalizeInvitation({
-      ...existingInvitation,
-      ...fields,
-      id,
-      slug,
-      url: slug,
-      titulo: fieldValue(formData, "titulo"),
-      tipo: fieldValue(formData, "tipo"),
-      anfitrion: fieldValue(formData, "anfitrion"),
-      nombre: fieldValue(formData, "nombre"),
-      edad: fieldValue(formData, "edad"),
-      fecha: fieldValue(formData, "fecha"),
-      hora: fieldValue(formData, "hora"),
-      lugar: fieldValue(formData, "lugar"),
-      direccion: fieldValue(formData, "direccion"),
-      telefono: fieldValue(formData, "telefono"),
-      googleMapsUrl: fieldValue(formData, "googleMapsUrl"),
-      googleScriptUrl: fieldValue(formData, "googleScriptUrl"),
-      descripcion: fieldValue(formData, "descripcion"),
-      adminPassword: fieldValue(formData, "adminPassword"),
-      customHtml: rawFieldValue(formData, "customHtml"),
-      customCss: rawFieldValue(formData, "customCss"),
-      customJs: rawFieldValue(formData, "customJs"),
-      visualCanvasImage: getVisualCanvasImageForInvitation(existingInvitation),
-      visualTemplateImage: getVisualTemplateImageForInvitation(existingInvitation),
-      birthdayPhotoImage: getBirthdayPhotoImageForInvitation(existingInvitation),
-      visualDesign: getVisualDesignForInvitation(existingInvitation),
-      design
-    });
-    invitation.imagen = getInvitationImage(invitation);
-    console.log("Campos guardados:", fields);
-    return invitation;
-  }
-
-  function fillProfessionalEditor(invitation) {
-    const form = document.getElementById("professionalEditorForm");
-    const design = { ...DEFAULT_DESIGN, ...(invitation.design || {}) };
-    form.elements.id.value = invitation.id;
-    form.elements.slug.value = invitation.slug || invitation.id;
-    form.elements.titulo.value = invitation.titulo || "";
-    form.elements.nombre.value = invitation.nombre || "";
-    form.elements.edad.value = invitation.edad || "";
-    form.elements.anfitrion.value = invitation.anfitrion || "";
-    form.elements.tipo.value = invitation.tipo || "";
-    form.elements.fecha.value = invitation.fecha || "";
-    form.elements.hora.value = invitation.hora || "";
-    form.elements.lugar.value = invitation.lugar || "";
-    form.elements.direccion.value = invitation.direccion || "";
-    form.elements.telefono.value = invitation.telefono || "";
-    form.elements.googleMapsUrl.value = invitation.googleMapsUrl || "";
-    if (form.elements.googleScriptUrl) form.elements.googleScriptUrl.value = invitation.googleScriptUrl || invitation.sheetEndpoint || "";
-    form.elements.adminPassword.value = invitation.adminPassword || "";
-    form.elements.descripcion.value = invitation.descripcion || "";
-    form.elements.customHtml.value = invitation.customHtml || "";
-    form.elements.customCss.value = invitation.customCss || "";
-    form.elements.customJs.value = invitation.customJs || "";
-    form.elements.primaryColor.value = design.primaryColor;
-    form.elements.secondaryColor.value = design.secondaryColor;
-    form.elements.textColor.value = design.textColor;
-    form.elements.buttonColor.value = design.buttonColor;
-    form.elements.mainImage.value = design.mainImage;
-    form.elements.backgroundImage.value = design.backgroundImage;
-    form.elements.uploadedImage.value = design.uploadedImage;
-    form.elements.imageUrl.value = design.imageUrl;
-    form.elements.animation.value = design.animation;
-    form.elements.typography.value = design.typography;
-    updateEditorPublicUrl();
-  }
-
-  function updateEditorPublicUrl() {
-    if (page !== "editor") return;
-    const output = document.getElementById("editorPublicUrl");
-    const form = document.getElementById("professionalEditorForm");
-    if (!output || !form) return;
-    const slug = getSlugFromFormData(new FormData(form), activeEditorInvitation?.slug || activeEditorInvitation?.id || "");
-    output.textContent = slug ? getPublicInvitationUrl({ ...(activeEditorInvitation || {}), slug }) : "invitacion.html?id=";
-  }
-
-  function updatePreview() {
-    if (page !== "editor") return;
-    const invitation = getProfessionalFormData();
-    updateEditorPublicUrl();
-    document.getElementById("previewTitle").textContent = invitation.titulo || "Invitacion";
-    document.getElementById("livePreviewFrame").srcdoc = buildCustomInvitationDocument(invitation);
-  }
-
-  function syncActiveEditorCoverDesign() {
-    if (!activeEditorInvitation) return;
-    const invitation = getProfessionalFormData();
-    activeEditorInvitation = {
-      ...activeEditorInvitation,
-      ...invitation,
-      design: invitation.design,
-      imagen: invitation.imagen
-    };
-    updatePreview();
-  }
-
-  function saveEditorDraftFromForm() {
-    if (!activeEditorInvitation) return;
-    const invitation = getProfessionalFormData();
-    activeEditorInvitation = {
-      ...activeEditorInvitation,
-      ...invitation
-    };
-    if (validateSlug(invitation.slug) && isSlugAvailable(invitation.slug, activeEditorInvitation.id)) {
-      activeEditorInvitation = saveCustomInvitation(invitation);
-    }
-  }
-
-  function scheduleEditorAutosave() {
-    clearTimeout(editorAutosaveTimer);
-    editorAutosaveTimer = setTimeout(saveEditorDraftFromForm, 450);
-  }
-  function saveInvitation(event) {
-    if (event) event.preventDefault();
-    const message = document.getElementById("editorMessage");
-
-    try {
-      const existingInvitation = activeEditorInvitation;
-      const invitation = attachVisualDesignToInvitation(getProfessionalFormData());
-      if (!validateSlug(invitation.slug)) {
-        message.className = "error-message";
-        message.textContent = "La URL personalizada solo puede usar letras minusculas, numeros y guiones.";
-        return;
-      }
-      if (!isSlugAvailable(invitation.slug, existingInvitation?.id)) {
-        message.className = "error-message";
-        message.textContent = "Ya existe una invitacion con esa URL personalizada.";
-        return;
-      }
-      activeEditorInvitation = saveCustomInvitation({
-        ...existingInvitation,
-        ...invitation,
-        id: existingInvitation?.id || invitation.id,
-        slug: invitation.slug
-      });
-      const publicUrl = getPublicInvitationUrl(activeEditorInvitation);
-      console.log("Invitación final guardada:", activeEditorInvitation);
-      console.log("URL pública:", publicUrl);
-      debugInvitationFlow("saveInvitation editor", {
-        savedId: activeEditorInvitation.id,
-        savedSlug: activeEditorInvitation.slug,
-        savedUrl: activeEditorInvitation.url,
-        publicUrl
-      });
-      document.getElementById("professionalEditorForm").elements.id.value = activeEditorInvitation.id;
-      document.getElementById("professionalEditorForm").elements.slug.value = activeEditorInvitation.slug;
-      message.className = "success-message";
-      message.textContent = "Cambios guardados correctamente.";
-      window.history.replaceState(null, "", buildUrl("editor.html", { id: activeEditorInvitation.id }));
-      initShareSection(activeEditorInvitation);
-      updatePreview();
-    } catch (error) {
-      console.error("No se pudo guardar la invitacion", error);
-      message.className = "error-message";
-      message.textContent = "No se pudo guardar. Revisa el tamaño de las imagenes o intenta exportar el JSON.";
-    }
-  }
-
-  function duplicateInvitation() {
-    const invitation = attachVisualDesignToInvitation(getProfessionalFormData());
-    const copyId = normalizeId(`${invitation.id}-copia-${Date.now().toString().slice(-5)}`);
-    const copy = {
-      ...invitation,
-      id: copyId,
-      slug: copyId,
-      titulo: `${invitation.titulo} (Copia)`
-    };
-    saveCustomInvitation(copy);
-    if (copy.visualTemplateImage) persistVisualTemplateImage(copy, copy.visualTemplateImage);
-    if (copy.birthdayPhotoImage) persistBirthdayPhotoImage(copy, copy.birthdayPhotoImage);
-    if (copy.visualDesign) persistVisualDesign(copy, copy.visualDesign);
-    if (copy.visualCanvasImage) persistVisualCanvasImage(copy, copy.visualCanvasImage);
-    window.location.href = buildUrl("editor.html", { id: copy.id });
-  }
-
-  function deleteInvitation(id = null) {
-    if (id) {
-      if (deleteInvitationRecord(id)) renderInvitationCards();
-      return;
-    }
-
-    const invitation = getProfessionalFormData();
-    if (!deleteInvitationRecord(invitation.id, "¿Está seguro?")) return;
-    window.location.href = "index.html";
   }
 
   function viewAsGuest() {
@@ -1984,6 +1910,7 @@
   function buildStandaloneInvitationHtml(invitation, finalImage = null) {
     const design = { ...DEFAULT_DESIGN, ...(invitation.design || {}) };
     finalImage = finalImage || getExportedInvitationImage(invitation);
+    const visualRuntimeOverlay = buildVisualRuntimeOverlay(invitation);
     const customHtml = stripStandaloneUnsafeMarkup(replaceInvitationVariables(invitation.customHtml || "", invitation));
     const fallbackContent = `
       <div class="generated-content invitation-content">
@@ -2030,6 +1957,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(invitation.titulo || invitation.nombre || "Invitacion")}</title>
   <style>${baseDocumentStyles()}</style>
+  <style>${buildVisualRuntimeStyles()}</style>
   <style>
     html, body { min-height: 100%; overflow-x: hidden; overflow-y: auto; background: #170016; }
     body { margin: 0; min-height: 100vh; padding: 0; overflow-x: hidden; overflow-y: auto; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
@@ -2227,6 +2155,7 @@
       await loadConfirmations();
     });
 
+    ${buildVisualRuntimeScript()}
     try {
       ${escapeScript(js)}
     } catch (error) {
@@ -2243,7 +2172,7 @@
     try {
       const invitation = getCurrentInvitationObject();
       if (!invitation) {
-        alert("No se encontró la invitación actual.");
+        alert("Guarda o selecciona un diseño antes de exportar.");
         return;
       }
 
@@ -2269,14 +2198,14 @@
         visualCanvasImage: finalImage
       });
       const html = buildStandaloneInvitationHtml(exportInvitationData, finalImage);
-      if (/assets\/js\/(app|data)\.js|No se encontr[oó] invitaci[oó]n con id|localStorage\.getItem/.test(html)) {
+      if (/assets\/js\/(app|data)\.js|No se encontr[o?] invitaci[o?]n con id|localStorage\.getItem/.test(html)) {
         console.warn("El HTML exportado contiene referencias no standalone; revisa customHtml/customJs.");
       }
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${exportInvitationData.slug || exportInvitationData.id || "invitacion"}.html`;
+      a.download = `${exportInvitationData.slug || exportInvitationData.id || "diseno"}.html`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -2293,115 +2222,454 @@
     }
   }
 
-  const exportPublicHtmlInvitation = exportPublicHtml;
-  function importInvitation(file) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const importedInvitation = JSON.parse(reader.result);
-        activeEditorInvitation = normalizeInvitation({
-          ...activeEditorInvitation,
-          ...importedInvitation,
-          id: importedInvitation.id || normalizeId(importedInvitation.titulo || `invitacion-${Date.now()}`)
-        });
-        if (activeEditorInvitation.visualTemplateImage) persistVisualTemplateImage(activeEditorInvitation, activeEditorInvitation.visualTemplateImage);
-        if (activeEditorInvitation.birthdayPhotoImage) persistBirthdayPhotoImage(activeEditorInvitation, activeEditorInvitation.birthdayPhotoImage);
-        if (activeEditorInvitation.visualDesign) persistVisualDesign(activeEditorInvitation, activeEditorInvitation.visualDesign);
-        if (activeEditorInvitation.visualCanvasImage) persistVisualCanvasImage(activeEditorInvitation, activeEditorInvitation.visualCanvasImage);
-        fillProfessionalEditor(activeEditorInvitation);
-        if (visualEditorCanvas && activeEditorInvitation.visualDesign) loadVisualDesign();
-        updatePreview();
-        document.getElementById("editorMessage").textContent = "JSON importado. Revisa la vista previa y guarda los cambios.";
-      } catch (error) {
-        const message = document.getElementById("editorMessage");
-        message.className = "error-message";
-        message.textContent = "No se pudo importar el archivo JSON.";
-      }
-    };
-    reader.readAsText(file);
-  }
 
-  window.updatePreview = updatePreview;
-  window.saveInvitation = saveInvitation;
-  window.duplicateInvitation = duplicateInvitation;
-  window.deleteInvitation = deleteInvitation;
-  window.exportInvitation = exportInvitation;
-  window.exportPublicHtml = exportPublicHtml;
-  window.exportPublicHtmlInvitation = exportPublicHtmlInvitation;
-  window.importInvitation = importInvitation;
-  window.viewAsGuest = viewAsGuest;
   let visualEditorCanvas = null;
-  let visualPreviewSyncTimer = null;
-  let editorAutosaveTimer = null;
-  const VISUAL_CANVAS_WIDTH = 720;
-  const VISUAL_CANVAS_HEIGHT = 1280;
+  let visualHistory = [];
+  let visualHistoryIndex = -1;
+  let visualHistoryRestoring = false;
+  let visualControlsUpdating = false;
+  let VISUAL_CANVAS_WIDTH = 390;
+  let VISUAL_CANVAS_HEIGHT = 844;
+  let visualCanvasPreset = "mobile-invitation";
+  let visualElementCategory = "all";
+  const VISUAL_HISTORY_LIMIT = 20;
+  const VISUAL_IMAGE_STORAGE_LIMIT = 1800000;
+  const VISUAL_OBJECT_PROPS = ["visualId", "visualRole", "locked", "frameId", "frameShape", "originalSrc", "elementName", "elementSrc", "elementType", "componentType", "componentUrl", "entranceAnimation", "loopAnimation", "animationSpeed", "animationIntensity", "animationDuration", "lightEffect", "textEffect", "themePreset"];
+  const VISUAL_COMPONENT_LABELS = { countdown: "Cuenta regresiva", music: "Musica", gallery: "Galeria", map: "Mapa", rsvp: "Confirmar", whatsapp: "WhatsApp", call: "Llamar", location: "Como llegar" };
+  const VISUAL_ELEMENT_CATEGORIES = [{ id: "all", label: "Todos" }, { id: "favorites", label: "Favoritos" }, { id: "hearts", label: "Corazones" }, { id: "stars", label: "Estrellas" }, { id: "kpop", label: "K-Pop" }];
+  const VISUAL_ELEMENTS = [
+    { id: "heart-basic", name: "Corazon", category: "hearts", src: "assets/elements/hearts/heart-1.svg", type: "svg" },
+    { id: "star-basic", name: "Estrella", category: "stars", src: "assets/elements/stars/star-1.svg", type: "svg" },
+    { id: "mic-basic", name: "Microfono", category: "kpop", src: "assets/elements/kpop/mic-1.svg", type: "svg" }
+  ];
 
-  function setVisualEditorStatus(message) {
-    const status = document.getElementById("visualEditorStatus");
-    if (status) status.textContent = message || "";
+  function getVisualControl(id) { return document.getElementById(id); }
+  function ensureVisualObjectId(object) { if (object && !object.visualId) object.visualId = `visual-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`; return object?.visualId; }
+  function getSelectedVisualObject() { return visualEditorCanvas?.getActiveObject() || null; }
+  function isVisualTextObject(object) { return object && (object.type === "textbox" || object.type === "text" || object.type === "i-text"); }
+  function isVisualPhotoObject(object) { return object?.visualRole === "photo" || object?.type === "image"; }
+  function isVisualStickerObject(object) { return object?.visualRole === "sticker"; }
+  function isVisualFrameObject(object) { return object?.visualRole === "frame"; }
+  function isVisualStyleObject(object) { return !!object && object.visualRole !== "backgroundTemplate"; }
+  function getSelectedVisualPhoto() { const selected = getSelectedVisualObject(); return isVisualPhotoObject(selected) ? selected : null; }
+  function getSelectedFilterImage() { return getSelectedVisualPhoto(); }
+  function getVisualFrameById(frameId) { return visualEditorCanvas?.getObjects().find((object) => object.frameId === frameId && isVisualFrameObject(object)); }
+  function colorizeSvgObject(object, color) { if (object?.set) { object.stickerColor = color; object.set("fill", color); } }
+  function syncFrameClip() {}
+  function syncAllFrameClips() {}
+  function fitPhotoToFrame(photo) { if (photo) photo.setCoords(); }
+  function centerPhotoInFrame(photo) { if (photo) { photo.center(); photo.setCoords(); } }
+
+  function updateVisualCanvasShellSize() {
+    const shell = document.querySelector(".visual-canvas-shell");
+    if (!shell) return;
+    shell.style.setProperty("--visual-canvas-width", String(VISUAL_CANVAS_WIDTH));
+    shell.style.setProperty("--visual-canvas-height", String(VISUAL_CANVAS_HEIGHT));
+    shell.style.setProperty("--visual-canvas-ratio", `${VISUAL_CANVAS_WIDTH} / ${VISUAL_CANVAS_HEIGHT}`);
   }
 
-
-
-  function getSerializedVisualDesign() {
-    if (visualEditorCanvas) {
-      return visualEditorCanvas.toJSON(["visualRole", "selectable", "evented", "lockMovementX", "lockMovementY", "lockRotation", "lockScalingX", "lockScalingY"]);
-    }
-    return activeEditorInvitation ? getVisualDesignForInvitation(activeEditorInvitation) : null;
+  function syncVisualCanvasPresetControls() {
+    const select = getVisualControl("visualCanvasPresetSelect");
+    const customFields = getVisualControl("visualCustomSizeFields");
+    const widthInput = getVisualControl("visualCustomWidth");
+    const heightInput = getVisualControl("visualCustomHeight");
+    if (select) select.value = visualCanvasPreset;
+    if (customFields) customFields.hidden = visualCanvasPreset !== "custom";
+    if (widthInput) widthInput.value = VISUAL_CANVAS_WIDTH;
+    if (heightInput) heightInput.value = VISUAL_CANVAS_HEIGHT;
   }
 
-  function getFabricDesignJson(visualDesign) {
-    if (!visualDesign) return "";
-    return typeof visualDesign === "string" ? visualDesign : JSON.stringify(visualDesign);
-  }
-
-  function getVisualCanvasImageDataUrl() {
-    if (visualEditorCanvas) {
-      return visualEditorCanvas.toDataURL({
-        format: "jpeg",
-        quality: 0.86,
-        multiplier: 1
+  function applyVisualCanvasSize(width, height, preset = "custom", options = {}) {
+    const previousWidth = VISUAL_CANVAS_WIDTH;
+    const previousHeight = VISUAL_CANVAS_HEIGHT;
+    VISUAL_CANVAS_WIDTH = Math.max(100, Math.min(4000, Math.round(Number(width) || 390)));
+    VISUAL_CANVAS_HEIGHT = Math.max(100, Math.min(4000, Math.round(Number(height) || 844)));
+    visualCanvasPreset = preset || "custom";
+    updateVisualCanvasShellSize();
+    syncVisualCanvasPresetControls();
+    if (!visualEditorCanvas) return;
+    const scaleObjects = options.scaleObjects !== false && previousWidth && previousHeight && (previousWidth !== VISUAL_CANVAS_WIDTH || previousHeight !== VISUAL_CANVAS_HEIGHT);
+    if (scaleObjects) {
+      const scaleX = VISUAL_CANVAS_WIDTH / previousWidth;
+      const scaleY = VISUAL_CANVAS_HEIGHT / previousHeight;
+      visualEditorCanvas.getObjects().forEach((object) => {
+        object.set({ left: (object.left || 0) * scaleX, top: (object.top || 0) * scaleY, scaleX: (object.scaleX || 1) * scaleX, scaleY: (object.scaleY || 1) * scaleY });
+        object.setCoords();
       });
     }
-    return activeEditorInvitation ? getVisualCanvasImageForInvitation(activeEditorInvitation) : "";
+    visualEditorCanvas.setDimensions({ width: VISUAL_CANVAS_WIDTH, height: VISUAL_CANVAS_HEIGHT });
+    visualEditorCanvas.renderAll();
+    if (!options.silent) commitVisualChange("Formato actualizado.");
   }
 
-  function attachVisualDesignToInvitation(invitation) {
-    if (!invitation) return invitation;
-    const visualDesign = getSerializedVisualDesign();
-    const visualCanvasImage = getVisualCanvasImageDataUrl();
-    const nextInvitation = attachVisualSourcesToInvitation({
-      ...invitation,
-      visualDesign: visualDesign || invitation.visualDesign || null,
-      visualCanvasImage: visualCanvasImage || invitation.visualCanvasImage || ""
+  function bindVisualCanvasSizeControls() {
+    const select = getVisualControl("visualCanvasPresetSelect");
+    select?.addEventListener("change", () => {
+      if (select.value === "custom") { visualCanvasPreset = "custom"; syncVisualCanvasPresetControls(); return; }
+      const preset = DESIGN_CANVAS_PRESETS[select.value] || DESIGN_CANVAS_PRESETS["mobile-invitation"];
+      applyVisualCanvasSize(preset.width, preset.height, select.value);
     });
-    return nextInvitation;
-  }
-  function syncVisualEditorToPreview() {
-    if (!visualEditorCanvas || !activeEditorInvitation) return;
-    const visualDesign = getSerializedVisualDesign();
-    const pngDataUrl = getVisualCanvasImageDataUrl();
-    activeEditorInvitation = attachVisualSourcesToInvitation({
-      ...activeEditorInvitation,
-      visualDesign,
-      visualCanvasImage: pngDataUrl
-    });
-    const formInvitation = getProfessionalFormData();
-    const invitationWithAliases = attachVisualSourcesToInvitation({
-      ...formInvitation,
-      ...activeEditorInvitation,
-      visualDesign,
-      visualCanvasImage: pngDataUrl
-    });
-    activeEditorInvitation = saveCustomInvitation(invitationWithAliases);
-    forceSaveVisualCanvasImage();
-    updatePreview();
+    getVisualControl("visualApplyCustomSizeButton")?.addEventListener("click", () => applyVisualCanvasSize(getVisualControl("visualCustomWidth")?.value, getVisualControl("visualCustomHeight")?.value, "custom"));
+    updateVisualCanvasShellSize();
+    syncVisualCanvasPresetControls();
   }
 
-  function scheduleVisualPreviewSync() {
-    clearTimeout(visualPreviewSyncTimer);
-    visualPreviewSyncTimer = setTimeout(syncVisualEditorToPreview, 300);
+  function getSerializedVisualDesign() {
+    if (!visualEditorCanvas) return null;
+    const design = visualEditorCanvas.toJSON(VISUAL_OBJECT_PROPS);
+    design.canvasWidth = VISUAL_CANVAS_WIDTH;
+    design.canvasHeight = VISUAL_CANVAS_HEIGHT;
+    design.canvasPreset = visualCanvasPreset;
+    return design;
+  }
+
+  function getVisualCanvasImageDataUrl() { return visualEditorCanvas ? visualEditorCanvas.toDataURL({ format: "jpeg", quality: 0.86, multiplier: 1 }) : ""; }
+  function setVisualEditorStatus(message) { const status = document.getElementById("visualEditorStatus"); if (status) status.textContent = message || ""; }
+  function recordVisualHistory() { if (!visualEditorCanvas || visualHistoryRestoring) return; visualHistory = visualHistory.slice(0, visualHistoryIndex + 1); visualHistory.push(JSON.stringify(getSerializedVisualDesign())); if (visualHistory.length > VISUAL_HISTORY_LIMIT) visualHistory.shift(); visualHistoryIndex = visualHistory.length - 1; }
+  function restoreVisualHistory(index) { if (!visualEditorCanvas || !visualHistory[index]) return; visualHistoryRestoring = true; visualEditorCanvas.loadFromJSON(JSON.parse(visualHistory[index]), () => { visualHistoryIndex = index; visualHistoryRestoring = false; updateVisualPanels(); visualEditorCanvas.renderAll(); }); }
+  function undoVisualChange() { if (visualHistoryIndex > 0) restoreVisualHistory(visualHistoryIndex - 1); }
+  function redoVisualChange() { if (visualHistoryIndex < visualHistory.length - 1) restoreVisualHistory(visualHistoryIndex + 1); }
+  function commitVisualChange(message) { recordVisualHistory(); updateVisualPanels(); syncVisualEditorToPreview(); scheduleEditorAutosave(); setVisualEditorStatus(message || "Cambio guardado automaticamente."); }
+
+  function updateVisualLayersPanel() {
+    const list = document.getElementById("visualLayersList");
+    if (!list || !visualEditorCanvas) return;
+    const selected = getSelectedVisualObject();
+    list.innerHTML = visualEditorCanvas.getObjects().slice().reverse().map((object, index) => `<button class="visual-layer-button${object === selected ? " active" : ""}" type="button" data-layer-id="${escapeHtml(object.visualId || "")}">${escapeHtml(object.elementName || object.visualRole || object.type || `Capa ${index + 1}`)}</button>`).join("");
+    list.querySelectorAll("[data-layer-id]").forEach((button) => button.addEventListener("click", () => {
+      const object = visualEditorCanvas.getObjects().find((item) => item.visualId === button.dataset.layerId);
+      if (object) { visualEditorCanvas.setActiveObject(object); visualEditorCanvas.renderAll(); updateVisualPanels(); }
+    }));
+  }
+
+  function updateVisualPositionPanel() {
+    const selected = getSelectedVisualObject();
+    visualControlsUpdating = true;
+    if (selected) {
+      if (getVisualControl("visualPosX")) getVisualControl("visualPosX").value = Math.round(selected.left || 0);
+      if (getVisualControl("visualPosY")) getVisualControl("visualPosY").value = Math.round(selected.top || 0);
+      if (getVisualControl("visualWidth")) getVisualControl("visualWidth").value = Math.round(selected.getScaledWidth?.() || selected.width || 0);
+      if (getVisualControl("visualHeight")) getVisualControl("visualHeight").value = Math.round(selected.getScaledHeight?.() || selected.height || 0);
+      if (getVisualControl("visualAngle")) getVisualControl("visualAngle").value = Math.round(selected.angle || 0);
+    }
+    visualControlsUpdating = false;
+  }
+
+  function updateVisualTextPanel() {
+    const selected = getSelectedVisualObject();
+    const isText = isVisualTextObject(selected);
+    visualControlsUpdating = true;
+    if (getVisualControl("visualTextValue")) getVisualControl("visualTextValue").value = isText ? selected.text || "" : "";
+    if (getVisualControl("visualFontFamily")) getVisualControl("visualFontFamily").value = isText ? selected.fontFamily || "Arial" : "Arial";
+    if (getVisualControl("visualFontSize")) getVisualControl("visualFontSize").value = isText ? selected.fontSize || 32 : 32;
+    if (getVisualControl("visualTextColor")) getVisualControl("visualTextColor").value = isText ? selected.fill || "#111111" : "#111111";
+    if (getVisualControl("visualTextAngle")) getVisualControl("visualTextAngle").value = isText ? Math.round(selected.angle || 0) : 0;
+    if (getVisualControl("visualTextBold")) getVisualControl("visualTextBold").checked = isText && selected.fontWeight === "bold";
+    if (getVisualControl("visualTextItalic")) getVisualControl("visualTextItalic").checked = isText && selected.fontStyle === "italic";
+    visualControlsUpdating = false;
+  }
+
+  function updateVisualPanels() {
+    const hasSelection = !!getSelectedVisualObject();
+    document.querySelector(".visual-side-panel")?.classList.toggle("is-empty", !hasSelection);
+    updateVisualTextPanel();
+    updateVisualPositionPanel();
+    updateVisualLayersPanel();
+    if (typeof updateVisualStickerPanel === "function") updateVisualStickerPanel();
+    if (typeof updateVisualAnimationPanel === "function") updateVisualAnimationPanel();
+  }
+
+  function applyVisualTextChange(prop, value) { const selected = getSelectedVisualObject(); if (!isVisualTextObject(selected) || visualControlsUpdating) return; selected.set(prop, value); selected.setCoords(); commitVisualChange("Texto actualizado."); }
+  function addVisualText() { if (!visualEditorCanvas || !window.fabric) return; const text = new window.fabric.Textbox("Nuevo texto", { left: VISUAL_CANVAS_WIDTH / 2, top: VISUAL_CANVAS_HEIGHT / 2, originX: "center", originY: "center", width: 360, fontSize: 32, fill: "#111827", fontFamily: "Arial", editable: true, visualRole: "text" }); ensureVisualObjectId(text); visualEditorCanvas.add(text); visualEditorCanvas.setActiveObject(text); commitVisualChange("Texto agregado."); }
+  function duplicateSelectedVisualObject() { const selected = getSelectedVisualObject(); if (!selected) return; selected.clone((clone) => { clone.set({ left: (selected.left || 0) + 24, top: (selected.top || 0) + 24 }); ensureVisualObjectId(clone); visualEditorCanvas.add(clone); visualEditorCanvas.setActiveObject(clone); commitVisualChange("Elemento duplicado."); }, VISUAL_OBJECT_PROPS); }
+  function moveSelectedVisualLayer(direction) { const selected = getSelectedVisualObject(); if (!selected) return; if (direction > 0) visualEditorCanvas.bringForward(selected); else visualEditorCanvas.sendBackwards(selected); commitVisualChange("Capa actualizada."); }
+  function setBackgroundLocked(locked) { visualEditorCanvas?.getObjects().filter((object) => object.visualRole === "backgroundTemplate").forEach((object) => object.set({ locked, selectable: !locked, evented: !locked })); updateVisualPanels(); }
+  function bindVisualKeyboardShortcuts() { document.addEventListener("keydown", (event) => { if (event.key === "Delete" || event.key === "Backspace") { if (document.activeElement?.matches("input, textarea, select")) return; deleteSelectedObject(); } }); }
+  function bindVisualTextControls() { getVisualControl("visualTextValue")?.addEventListener("input", (event) => applyVisualTextChange("text", event.target.value)); getVisualControl("visualFontFamily")?.addEventListener("change", (event) => applyVisualTextChange("fontFamily", event.target.value)); getVisualControl("visualFontSize")?.addEventListener("input", (event) => applyVisualTextChange("fontSize", Number(event.target.value) || 32)); getVisualControl("visualTextColor")?.addEventListener("input", (event) => applyVisualTextChange("fill", event.target.value)); getVisualControl("visualTextAngle")?.addEventListener("input", (event) => applyVisualTextChange("angle", Number(event.target.value) || 0)); getVisualControl("visualTextBold")?.addEventListener("change", (event) => applyVisualTextChange("fontWeight", event.target.checked ? "bold" : "normal")); getVisualControl("visualTextItalic")?.addEventListener("change", (event) => applyVisualTextChange("fontStyle", event.target.checked ? "italic" : "normal")); }
+  function bindVisualPhotoControls() { document.querySelectorAll("[data-visual-frame]").forEach((button) => button.addEventListener("click", () => addVisualFrame(button.dataset.visualFrame))); getVisualControl("visualPhotoZoom")?.addEventListener("input", applyPhotoZoom); getVisualControl("visualReplacePhotoInput")?.addEventListener("change", (event) => readImageFile(event.target.files[0], replaceSelectedPhoto)); }
+  function renderVisualElementCategories() { const container = document.getElementById("visualElementCategories"); if (!container) return; container.innerHTML = VISUAL_ELEMENT_CATEGORIES.map((category) => `<button class="visual-category-button${visualElementCategory === category.id ? " active" : ""}" type="button" data-category="${category.id}">${category.label}</button>`).join(""); container.querySelectorAll("[data-category]").forEach((button) => button.addEventListener("click", () => { visualElementCategory = button.dataset.category; renderVisualElementCategories(); renderVisualElementLibrary(); })); }
+  function renderVisualElementLibrary() { const container = document.getElementById("visualElementLibrary"); if (!container) return; const search = (document.getElementById("visualElementSearch")?.value || "").toLowerCase(); const items = VISUAL_ELEMENTS.filter((item) => (visualElementCategory === "all" || item.category === visualElementCategory) && (!search || item.name.toLowerCase().includes(search))); container.innerHTML = items.map((item) => `<button class="visual-element-item" type="button" data-element-id="${item.id}"><img src="${item.src}" alt=""><span>${item.name}</span></button>`).join(""); container.querySelectorAll("[data-element-id]").forEach((button) => button.addEventListener("click", () => addVisualSticker(VISUAL_ELEMENTS.find((item) => item.id === button.dataset.elementId)))); }
+  function addVisualSticker(element) { if (!element || !visualEditorCanvas || !window.fabric) return; window.fabric.Image.fromURL(element.src, (image) => { image.set({ left: VISUAL_CANVAS_WIDTH / 2, top: VISUAL_CANVAS_HEIGHT / 2, originX: "center", originY: "center", scaleX: 1, scaleY: 1, visualRole: "sticker", elementName: element.name, elementSrc: element.src, elementType: element.type }); ensureVisualObjectId(image); visualEditorCanvas.add(image); visualEditorCanvas.setActiveObject(image); commitVisualChange("Elemento agregado."); }); }
+  function bindVisualElementControls() { renderVisualElementCategories(); renderVisualElementLibrary(); getVisualControl("visualElementSearch")?.addEventListener("input", renderVisualElementLibrary); getVisualControl("visualStickerOpacity")?.addEventListener("input", applyVisualStickerControls); getVisualControl("visualStickerColor")?.addEventListener("input", applyVisualStickerControls); }
+  function updateVisualStickerPanel() {
+    const selected = getSelectedVisualObject();
+    const isSticker = isVisualStickerObject(selected);
+    visualControlsUpdating = true;
+    ["visualStickerColor", "visualStickerOpacity", "visualStickerAnimation"].forEach((id) => {
+      const control = getVisualControl(id);
+      if (control) control.disabled = !isSticker;
+    });
+    if (isSticker) {
+      if (getVisualControl("visualStickerColor")) getVisualControl("visualStickerColor").value = selected.stickerColor || "#ff4f9a";
+      if (getVisualControl("visualStickerOpacity")) getVisualControl("visualStickerOpacity").value = Math.round((selected.opacity ?? 1) * 100);
+      if (getVisualControl("visualStickerAnimation")) getVisualControl("visualStickerAnimation").checked = !!selected.animationEnabled;
+    } else {
+      if (getVisualControl("visualStickerColor")) getVisualControl("visualStickerColor").value = "#ff4f9a";
+      if (getVisualControl("visualStickerOpacity")) getVisualControl("visualStickerOpacity").value = 100;
+      if (getVisualControl("visualStickerAnimation")) getVisualControl("visualStickerAnimation").checked = false;
+    }
+    visualControlsUpdating = false;
+  }
+
+  function applyVisualStickerControls() {
+    const selected = getSelectedVisualObject();
+    if (!isVisualStickerObject(selected) || visualControlsUpdating) return;
+    const opacity = Number(getVisualControl("visualStickerOpacity")?.value || 100) / 100;
+    selected.set("opacity", opacity);
+    if (selected.elementType === "svg") colorizeSvgObject(selected, getVisualControl("visualStickerColor")?.value || selected.stickerColor || "#ff4f9a");
+    selected.animationEnabled = !!getVisualControl("visualStickerAnimation")?.checked;
+    selected.setCoords();
+    commitVisualChange("Sticker actualizado.");
+  }
+
+  function applyObjectLightEffect(object) {
+    if (!object) return;
+    const color = object.lightEffect === "neon" ? "#ff4fce" : object.lightEffect === "side-light" ? "#8bdcff" : object.lightEffect ? "#fff3a8" : "";
+    if (!color) {
+      if (!object.glowValue) object.set("shadow", null);
+      return;
+    }
+    object.set("shadow", new window.fabric.Shadow({ color, blur: object.lightEffect === "halo" ? 42 : 28, offsetX: object.lightEffect === "side-light" ? -14 : 0, offsetY: 0 }));
+  }
+
+  function applyTextSpecialEffect(object) {
+    if (!isVisualTextObject(object)) return;
+    if (object.textEffect === "neon") {
+      object.set({ fill: "#ffffff", shadow: new window.fabric.Shadow({ color: "#ff4fce", blur: 28, offsetX: 0, offsetY: 0 }) });
+    } else if (object.textEffect === "bright" || object.textEffect === "glow") {
+      object.set("shadow", new window.fabric.Shadow({ color: "#fff3a8", blur: 24, offsetX: 0, offsetY: 0 }));
+    } else if (object.textEffect === "rainbow") {
+      object.set({ fill: "#ff4f9a", shadow: new window.fabric.Shadow({ color: "#6ec6ff", blur: 18, offsetX: 0, offsetY: 0 }) });
+    } else if (object.textEffect === "multi-shadow") {
+      object.set("shadow", new window.fabric.Shadow({ color: "rgba(0,0,0,0.45)", blur: 8, offsetX: 5, offsetY: 5 }));
+    }
+  }
+
+  function updateVisualAnimationPanel() {
+    const selected = getSelectedVisualObject();
+    const ids = ["visualEntranceAnimation", "visualLoopAnimation", "visualAnimationSpeed", "visualAnimationIntensity", "visualAnimationDuration", "visualLightEffect", "visualTextEffect"];
+    visualControlsUpdating = true;
+    ids.forEach((id) => { const control = getVisualControl(id); if (control) control.disabled = !selected; });
+    if (selected) {
+      if (getVisualControl("visualEntranceAnimation")) getVisualControl("visualEntranceAnimation").value = selected.entranceAnimation || "";
+      if (getVisualControl("visualLoopAnimation")) getVisualControl("visualLoopAnimation").value = selected.loopAnimation || "";
+      if (getVisualControl("visualAnimationSpeed")) getVisualControl("visualAnimationSpeed").value = selected.animationSpeed || 5;
+      if (getVisualControl("visualAnimationIntensity")) getVisualControl("visualAnimationIntensity").value = selected.animationIntensity || 5;
+      if (getVisualControl("visualAnimationDuration")) getVisualControl("visualAnimationDuration").value = selected.animationDuration || 4;
+      if (getVisualControl("visualLightEffect")) getVisualControl("visualLightEffect").value = selected.lightEffect || "";
+      if (getVisualControl("visualTextEffect")) getVisualControl("visualTextEffect").value = selected.textEffect || "";
+    } else {
+      ids.forEach((id) => { const control = getVisualControl(id); if (control) control.value = control.type === "range" ? 5 : ""; });
+      if (getVisualControl("visualAnimationDuration")) getVisualControl("visualAnimationDuration").value = 4;
+    }
+    visualControlsUpdating = false;
+  }
+
+  function applyVisualAnimationControls() {
+    const selected = getSelectedVisualObject();
+    if (!selected || visualControlsUpdating) return;
+    selected.entranceAnimation = getVisualControl("visualEntranceAnimation")?.value || "";
+    selected.loopAnimation = getVisualControl("visualLoopAnimation")?.value || "";
+    selected.animationSpeed = Number(getVisualControl("visualAnimationSpeed")?.value || 5);
+    selected.animationIntensity = Number(getVisualControl("visualAnimationIntensity")?.value || 5);
+    selected.animationDuration = Number(getVisualControl("visualAnimationDuration")?.value || 4);
+    selected.lightEffect = getVisualControl("visualLightEffect")?.value || "";
+    selected.textEffect = getVisualControl("visualTextEffect")?.value || "";
+    applyObjectLightEffect(selected);
+    applyTextSpecialEffect(selected);
+    selected.setCoords();
+    commitVisualChange("Animacion actualizada.");
+  }
+
+  function bindVisualEffectControls() {
+    document.querySelectorAll("[data-visual-effect]").forEach((button) => {
+      button.addEventListener("click", () => addVisualEffect(button.dataset.visualEffect));
+    });
+    document.querySelectorAll("[data-visual-component]").forEach((button) => {
+      button.addEventListener("click", () => addInteractiveComponent(button.dataset.visualComponent));
+    });
+    ["visualEntranceAnimation", "visualLoopAnimation", "visualLightEffect", "visualTextEffect"].forEach((id) => {
+      getVisualControl(id)?.addEventListener("change", applyVisualAnimationControls);
+    });
+    ["visualAnimationSpeed", "visualAnimationIntensity", "visualAnimationDuration"].forEach((id) => {
+      getVisualControl(id)?.addEventListener("input", applyVisualAnimationControls);
+    });
+    getVisualControl("visualThemePreset")?.addEventListener("change", (event) => applyVisualThemePreset(event.target.value));
+  }
+
+  function applyVisualThemePreset(preset) {
+    if (!preset || !visualEditorCanvas) return;
+    const presets = {
+      kpop: { color: "#ff4fce", effect: "lights" },
+      princess: { color: "#ff85b3", effect: "hearts" },
+      frozen: { color: "#9de7ff", effect: "snow" },
+      unicorn: { color: "#b586ff", effect: "magic" },
+      football: { color: "#3f7d72", effect: "confetti" },
+      wedding: { color: "#fff3a8", effect: "shine" },
+      business: { color: "#6ec6ff", effect: "particles" }
+    };
+    const config = presets[preset];
+    if (!config) return;
+    visualEditorCanvas.getObjects().forEach((object) => {
+      if (isVisualTextObject(object)) object.set("fill", config.color);
+      if (isVisualStickerObject(object) && object.elementType === "svg") colorizeSvgObject(object, config.color);
+      object.themePreset = preset;
+    });
+    addVisualEffect(config.effect);
+    commitVisualChange("Preset aplicado.");
+  }
+  function bindVisualElementControls() {
+    renderVisualElementCategories();
+    renderVisualElementLibrary();
+    getVisualControl("visualElementSearch")?.addEventListener("input", (event) => {
+      visualElementQuery = event.target.value || "";
+      renderVisualElementLibrary();
+    });
+    getVisualControl("visualStickerColor")?.addEventListener("input", applyVisualStickerControls);
+    getVisualControl("visualStickerOpacity")?.addEventListener("input", applyVisualStickerControls);
+    getVisualControl("visualStickerAnimation")?.addEventListener("change", applyVisualStickerControls);
+  }
+  function addVisualFrame(shape) {
+    if (!visualEditorCanvas || !window.fabric) return;
+    const frame = createVisualFrameShape(shape);
+    visualEditorCanvas.add(frame);
+    visualEditorCanvas.setActiveObject(frame);
+    commitVisualChange("Marco agregado.");
+  }
+
+  function addPhotoToCanvas(source, options = {}) {
+    if (!visualEditorCanvas || !source || !window.fabric) return;
+    if (getStorageBytes(source) > VISUAL_IMAGE_STORAGE_LIMIT) {
+      showStorageWarning("La foto es pesada. Se intentara guardar comprimida, pero conviene usar una imagen mas liviana o una URL.");
+    }
+    window.fabric.Image.fromURL(source, (photo) => {
+      const active = getSelectedVisualObject();
+      const frame = options.frame || (isVisualFrameObject(active) ? active : getVisualFrameById(active?.frameId));
+      photo.set({
+        visualRole: "photo",
+        selectable: true,
+        evented: true,
+        hasControls: true,
+        hasBorders: true,
+        originX: "center",
+        originY: "center",
+        cornerStyle: "circle",
+        transparentCorners: false,
+        originalSrc: source,
+        opacity: 1,
+        brightnessValue: 0,
+        contrastValue: 0,
+        saturationValue: 0,
+        grayscaleValue: false,
+        sepiaValue: false
+      });
+      ensureVisualObjectId(photo);
+      if (frame) {
+        photo.frameId = frame.frameId;
+        photo.clipPath = createClipPathForFrame(frame);
+        fitPhotoToFrame(photo, frame);
+      } else {
+        const scale = Math.min(360 / photo.width, 480 / photo.height, 1);
+        photo.scale(scale);
+        photo.set({ left: VISUAL_CANVAS_WIDTH / 2, top: VISUAL_CANVAS_HEIGHT / 2 });
+      }
+      visualEditorCanvas.add(photo);
+      if (frame) visualEditorCanvas.bringForward(frame);
+      visualEditorCanvas.setActiveObject(photo);
+      commitVisualChange(frame ? "Foto agregada dentro del marco." : "Foto agregada.");
+    });
+  }
+
+  function replaceSelectedPhoto(source) {
+    const selectedPhoto = getSelectedVisualPhoto();
+    if (!selectedPhoto || !source || !window.fabric) return;
+    window.fabric.Image.fromURL(source, (nextImage) => {
+      selectedPhoto.setElement(nextImage.getElement());
+      selectedPhoto.set({
+        width: nextImage.width,
+        height: nextImage.height,
+        originalSrc: source
+      });
+      const frame = getVisualFrameById(selectedPhoto.frameId);
+      if (frame) fitPhotoToFrame(selectedPhoto, frame);
+      selectedPhoto.applyFilters();
+      selectedPhoto.setCoords();
+      commitVisualChange("Foto reemplazada.");
+    });
+  }
+
+  function applyPhotoFilters() {
+    const photo = getSelectedFilterImage();
+    if (!photo || !window.fabric || visualControlsUpdating) return;
+    photo.brightnessValue = Number(getVisualControl("visualBrightness")?.value || 0);
+    photo.contrastValue = Number(getVisualControl("visualContrast")?.value || 0);
+    photo.saturationValue = Number(getVisualControl("visualSaturation")?.value || 0);
+    photo.grayscaleValue = !!getVisualControl("visualGrayscale")?.checked;
+    photo.sepiaValue = !!getVisualControl("visualSepia")?.checked;
+    photo.opacity = Number(getVisualControl("visualOpacity")?.value || 100) / 100;
+    const filters = [];
+    if (photo.brightnessValue) filters.push(new window.fabric.Image.filters.Brightness({ brightness: photo.brightnessValue / 100 }));
+    if (photo.contrastValue) filters.push(new window.fabric.Image.filters.Contrast({ contrast: photo.contrastValue / 100 }));
+    if (photo.saturationValue) filters.push(new window.fabric.Image.filters.Saturation({ saturation: photo.saturationValue / 100 }));
+    if (photo.grayscaleValue) filters.push(new window.fabric.Image.filters.Grayscale());
+    if (photo.sepiaValue) filters.push(new window.fabric.Image.filters.Sepia());
+    photo.filters = filters;
+    photo.applyFilters();
+    commitVisualChange("Filtro actualizado.");
+  }
+
+  function applyVisualStyleChange() {
+    const selected = getSelectedVisualObject();
+    if (!isVisualStyleObject(selected) || visualControlsUpdating) return;
+    const strokeColor = getVisualControl("visualStrokeColor")?.value || "#ffffff";
+    const strokeWidth = Number(getVisualControl("visualStrokeWidth")?.value || 0);
+    const radius = Number(getVisualControl("visualCornerRadius")?.value || 0);
+    const glow = Number(getVisualControl("visualGlow")?.value || 0);
+    const hasShadow = !!getVisualControl("visualShadow")?.checked;
+    selected.cornerRadius = radius;
+    selected.glowValue = glow;
+    selected.set({ stroke: strokeColor, strokeWidth });
+    if (selected.type === "rect") selected.set({ rx: radius, ry: radius });
+    if (hasShadow || glow) {
+      selected.set("shadow", new window.fabric.Shadow({
+        color: glow ? strokeColor : "rgba(0,0,0,0.32)",
+        blur: glow || 24,
+        offsetX: glow ? 0 : 10,
+        offsetY: glow ? 0 : 12
+      }));
+    } else {
+      selected.set("shadow", null);
+    }
+    if (isVisualFrameObject(selected)) syncFrameClip(selected);
+    selected.setCoords();
+    commitVisualChange("Estilo actualizado.");
+  }
+
+  function applyVisualPositionChange() {
+    const selected = getSelectedVisualObject();
+    if (!selected || visualControlsUpdating) return;
+    const nextWidth = Number(getVisualControl("visualWidth")?.value || selected.getScaledWidth());
+    const nextHeight = Number(getVisualControl("visualHeight")?.value || selected.getScaledHeight());
+    selected.set({
+      left: Number(getVisualControl("visualPosX")?.value || selected.left || 0),
+      top: Number(getVisualControl("visualPosY")?.value || selected.top || 0),
+      angle: Number(getVisualControl("visualAngle")?.value || 0)
+    });
+    if (nextWidth > 0 && selected.width) selected.scaleX = nextWidth / selected.width;
+    if (nextHeight > 0 && selected.height) selected.scaleY = nextHeight / selected.height;
+    selected.setCoords();
+    if (isVisualFrameObject(selected)) syncFrameClip(selected);
+    commitVisualChange("Medidas actualizadas.");
+  }
+
+  function applyPhotoZoom() {
+    const photo = getSelectedVisualPhoto();
+    if (!photo || visualControlsUpdating) return;
+    const zoom = Number(getVisualControl("visualPhotoZoom")?.value || 100) / 100;
+    photo.scale(zoom);
+    photo.cropZoom = Math.round(zoom * 100);
+    photo.setCoords();
+    commitVisualChange("Zoom actualizado.");
   }
   function readImageFile(file, callback) {
     if (!file) return;
@@ -2419,6 +2687,7 @@
   function markBackgroundTemplate(template) {
     template.set({
       visualRole: "backgroundTemplate",
+      locked: true,
       selectable: false,
       evented: false,
       lockMovementX: true,
@@ -2433,6 +2702,7 @@
       left: 0,
       top: 0
     });
+    ensureVisualObjectId(template);
   }
 
   function scaleImageToCoverCanvas(image) {
@@ -2473,6 +2743,7 @@
     persistBirthdayPhotoImage(invitation, dataUrl);
     updateInvitationInLocalStorage(invitation);
   }
+
   function loadBackgroundTemplate(source) {
     if (!visualEditorCanvas || !source || !window.fabric) return;
     saveVisualTemplateSource(source);
@@ -2485,43 +2756,19 @@
       visualEditorCanvas.add(template);
       visualEditorCanvas.sendToBack(template);
       visualEditorCanvas.discardActiveObject();
-      visualEditorCanvas.renderAll();
-      syncVisualEditorToPreview();
-      forceSaveVisualCanvasImage();
-      setVisualEditorStatus("Plantilla cargada.");
+      commitVisualChange("Plantilla cargada.");
     });
   }
 
   function uploadBirthdayPhoto(source) {
     if (!visualEditorCanvas || !source || !window.fabric) return;
     saveBirthdayPhotoSource(source);
-    window.fabric.Image.fromURL(source, (photo) => {
-      const scale = Math.min(360 / photo.width, 480 / photo.height, 1);
-      photo.set({
-        visualRole: "birthdayPhoto",
-        selectable: true,
-        hasControls: true,
-        hasBorders: true,
-        left: VISUAL_CANVAS_WIDTH / 2,
-        top: VISUAL_CANVAS_HEIGHT / 2,
-        originX: "center",
-        originY: "center",
-        cornerStyle: "circle",
-        transparentCorners: false
-      });
-      photo.scale(scale);
-      visualEditorCanvas.add(photo);
-      visualEditorCanvas.setActiveObject(photo);
-      visualEditorCanvas.renderAll();
-      syncVisualEditorToPreview();
-      forceSaveVisualCanvasImage();
-      setVisualEditorStatus("Foto agregada. Puedes moverla, rotarla o redimensionarla.");
-    });
+    addPhotoToCanvas(source);
   }
 
   function saveVisualDesign() {
     if (!visualEditorCanvas || !activeEditorInvitation) return null;
-    const jsonObject = visualEditorCanvas.toJSON(["visualRole", "selectable", "evented", "lockMovementX", "lockMovementY", "lockRotation", "lockScalingX", "lockScalingY"]);
+    const jsonObject = getSerializedVisualDesign();
     const json = JSON.stringify(jsonObject);
     const png = visualEditorCanvas.toDataURL({
       format: "jpeg",
@@ -2543,29 +2790,29 @@
     persistVisualCanvasImage(invitation, png);
     persistVisualDesign(invitation, jsonObject);
 
-    console.log("Guardando plantilla:", !!invitation.visualTemplateImage);
-    console.log("Guardando foto:", !!invitation.birthdayPhotoImage);
-    console.log("Guardando PNG final:", !!invitation.visualCanvasImage);
-    console.log("Guardando JSON Fabric:", !!json);
-
     activeEditorInvitation = updateInvitationInLocalStorage(invitation) || saveCustomInvitation(invitation);
     updatePreview();
-    setVisualEditorStatus("Diseño visual guardado.");
+    recordVisualHistory();
+    setVisualEditorStatus("Diseno visual guardado.");
     return activeEditorInvitation;
   }
 
   function restoreVisualObjectBehavior() {
     if (!visualEditorCanvas) return;
     visualEditorCanvas.getObjects().forEach((object) => {
+      ensureVisualObjectId(object);
       if (object.visualRole === "backgroundTemplate") {
         markBackgroundTemplate(object);
         visualEditorCanvas.sendToBack(object);
       } else {
         object.set({
-          selectable: true,
-          hasControls: true,
-          hasBorders: true
+          selectable: !object.locked,
+          evented: !object.locked,
+          hasControls: !object.locked,
+          hasBorders: !object.locked,
+          editable: isVisualTextObject(object) ? true : object.editable
         });
+        if (isVisualPhotoObject(object)) object.applyFilters?.();
       }
     });
     visualEditorCanvas.renderAll();
@@ -2574,6 +2821,11 @@
   function loadVisualDesign() {
     if (!visualEditorCanvas || !activeEditorInvitation) return;
     const rawDesign = getFabricDesignJson(getVisualDesignForInvitation(activeEditorInvitation));
+    if (rawDesign?.canvasWidth && rawDesign?.canvasHeight) {
+      applyVisualCanvasSize(rawDesign.canvasWidth, rawDesign.canvasHeight, rawDesign.canvasPreset || "custom", { silent: true, scaleObjects: false });
+    } else {
+      applyVisualCanvasSize(VISUAL_CANVAS_WIDTH, VISUAL_CANVAS_HEIGHT, visualCanvasPreset, { silent: true, scaleObjects: false });
+    }
     const storedTemplate = getVisualTemplateImageForInvitation(activeEditorInvitation);
     const storedPhoto = getBirthdayPhotoImageForInvitation(activeEditorInvitation);
     const storedFinalImage = getVisualCanvasImageForInvitation(activeEditorInvitation);
@@ -2585,20 +2837,29 @@
 
     if (rawDesign) {
       try {
-        visualEditorCanvas.loadFromJSON(rawDesign, () => {
+        visualEditorCanvas.loadFromJSON(prepareVisualDesignForLoad(rawDesign, {
+          visualTemplateImage: storedTemplate,
+          birthdayPhotoImage: storedPhoto
+        }), () => {
           restoreVisualObjectBehavior();
+          updateVisualPanels();
+          visualHistory = [];
+          visualHistoryIndex = -1;
+          recordVisualHistory();
           syncVisualEditorToPreview();
-          setVisualEditorStatus("Diseño visual cargado.");
+          setVisualEditorStatus("Diseno visual cargado.");
         });
       } catch (error) {
-        console.error("No se pudo cargar el diseño visual", error);
-        setVisualEditorStatus("No se pudo cargar el diseño visual guardado.");
+        console.error("No se pudo cargar el diseno visual", error);
+        setVisualEditorStatus("No se pudo cargar el diseno visual guardado.");
       }
       return;
     }
 
     if (storedTemplate) loadBackgroundTemplate(storedTemplate);
     if (storedPhoto) uploadBirthdayPhoto(storedPhoto);
+    recordVisualHistory();
+    updateVisualPanels();
   }
 
   function exportVisualPNG() {
@@ -2609,13 +2870,52 @@
     link.href = visualEditorCanvas.toDataURL({ format: "png", multiplier: 1 });
     link.download = `${activeEditorInvitation?.id || "invitacion"}-visual.png`;
     link.click();
+    updateVisualPanels();
     setVisualEditorStatus("PNG exportado.");
   }
 
+
+  function exportVisualJPG() {
+    if (!visualEditorCanvas) return;
+    visualEditorCanvas.discardActiveObject();
+    visualEditorCanvas.renderAll();
+    const link = document.createElement("a");
+    link.href = visualEditorCanvas.toDataURL({ format: "jpeg", quality: 0.92, multiplier: 1 });
+    link.download = `${activeEditorInvitation?.id || "diseno"}-visual.jpg`;
+    link.click();
+    updateVisualPanels();
+    setVisualEditorStatus("JPG exportado.");
+  }
+
+  function exportVisualPDF() {
+    if (!visualEditorCanvas) return;
+    visualEditorCanvas.discardActiveObject();
+    visualEditorCanvas.renderAll();
+    const image = visualEditorCanvas.toDataURL({ format: "png", multiplier: 1 });
+    const width = VISUAL_CANVAS_WIDTH;
+    const height = VISUAL_CANVAS_HEIGHT;
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${escapeHtml(activeEditorInvitation?.titulo || "Diseno")}</title><style>@page{size:${width}px ${height}px;margin:0}html,body{margin:0;width:${width}px;height:${height}px}img{display:block;width:100%;height:100%;object-fit:contain}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><img src="${image}" alt="Diseño"></body></html>`;
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${activeEditorInvitation?.id || "diseno"}-visual-pdf.html`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setVisualEditorStatus("PDF preparado como HTML imprimible.");
+  }
   function deleteSelectedObject() {
     if (!visualEditorCanvas) return;
     const selected = visualEditorCanvas.getActiveObject();
     if (!selected || selected.visualRole === "backgroundTemplate") return;
+    if (isVisualFrameObject(selected)) {
+      visualEditorCanvas.getObjects().forEach((object) => {
+        if (isVisualPhotoObject(object) && object.frameId === selected.frameId) {
+          object.clipPath = null;
+          object.frameId = "";
+        }
+      });
+    }
     if (selected.type === "activeSelection") {
       selected.getObjects().forEach((object) => {
         if (object.visualRole !== "backgroundTemplate") visualEditorCanvas.remove(object);
@@ -2624,10 +2924,77 @@
     } else {
       visualEditorCanvas.remove(selected);
     }
-    visualEditorCanvas.renderAll();
-    syncVisualEditorToPreview();
-    forceSaveVisualCanvasImage();
-    setVisualEditorStatus("Elemento eliminado.");
+    commitVisualChange("Elemento eliminado.");
+  }
+
+  function bindVisualTextControls() {
+    getVisualControl("visualTextValue")?.addEventListener("input", (event) => applyVisualTextChange("text", event.target.value));
+    getVisualControl("visualFontFamily")?.addEventListener("change", (event) => applyVisualTextChange("fontFamily", event.target.value));
+    getVisualControl("visualFontSize")?.addEventListener("input", (event) => applyVisualTextChange("fontSize", Number(event.target.value) || 32));
+    getVisualControl("visualTextColor")?.addEventListener("input", (event) => applyVisualTextChange("fill", event.target.value));
+    getVisualControl("visualTextAngle")?.addEventListener("input", (event) => applyVisualTextChange("angle", Number(event.target.value) || 0));
+    getVisualControl("visualTextBold")?.addEventListener("change", (event) => applyVisualTextChange("fontWeight", event.target.checked ? "bold" : "normal"));
+    getVisualControl("visualTextItalic")?.addEventListener("change", (event) => applyVisualTextChange("fontStyle", event.target.checked ? "italic" : "normal"));
+    document.querySelectorAll("[data-visual-align]").forEach((button) => {
+      button.addEventListener("click", () => applyVisualTextChange("textAlign", button.dataset.visualAlign));
+    });
+  }
+
+  function bindVisualPhotoControls() {
+    document.querySelectorAll("[data-visual-frame]").forEach((button) => {
+      button.addEventListener("click", () => addVisualFrame(button.dataset.visualFrame));
+    });
+    getVisualControl("visualPhotoZoom")?.addEventListener("input", applyPhotoZoom);
+    getVisualControl("visualFitPhotoButton")?.addEventListener("click", () => {
+      const photo = getSelectedVisualPhoto();
+      const frame = getVisualFrameById(photo?.frameId);
+      if (!photo || !frame) return;
+      fitPhotoToFrame(photo, frame);
+      commitVisualChange("Foto ajustada al marco.");
+    });
+    getVisualControl("visualCenterPhotoButton")?.addEventListener("click", () => {
+      const photo = getSelectedVisualPhoto();
+      if (!photo) return;
+      centerPhotoInFrame(photo);
+      commitVisualChange("Foto centrada.");
+    });
+    getVisualControl("visualReplacePhotoInput")?.addEventListener("change", (event) => {
+      readImageFile(event.target.files[0], replaceSelectedPhoto);
+      event.target.value = "";
+    });
+    ["visualBrightness", "visualContrast", "visualSaturation", "visualOpacity"].forEach((id) => {
+      getVisualControl(id)?.addEventListener("input", applyPhotoFilters);
+    });
+    ["visualGrayscale", "visualSepia"].forEach((id) => {
+      getVisualControl(id)?.addEventListener("change", applyPhotoFilters);
+    });
+    ["visualStrokeColor", "visualStrokeWidth", "visualCornerRadius", "visualGlow"].forEach((id) => {
+      getVisualControl(id)?.addEventListener("input", applyVisualStyleChange);
+    });
+    getVisualControl("visualShadow")?.addEventListener("change", applyVisualStyleChange);
+    ["visualPosX", "visualPosY", "visualWidth", "visualHeight", "visualAngle"].forEach((id) => {
+      getVisualControl(id)?.addEventListener("input", applyVisualPositionChange);
+    });
+  }
+  function bindVisualKeyboardShortcuts() {
+    document.addEventListener("keydown", (event) => {
+      if (!visualEditorCanvas) return;
+      const target = event.target;
+      const isTypingInField = target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
+      const selected = visualEditorCanvas.getActiveObject();
+      if ((event.key === "Delete" || event.key === "Backspace") && !isTypingInField && !(selected && selected.isEditing)) {
+        event.preventDefault();
+        deleteSelectedObject();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !isTypingInField) {
+        event.preventDefault();
+        undoVisualChange();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y" && !isTypingInField) {
+        event.preventDefault();
+        redoVisualChange();
+      }
+    });
   }
 
   function initVisualEditor() {
@@ -2637,10 +3004,14 @@
       width: VISUAL_CANVAS_WIDTH,
       height: VISUAL_CANVAS_HEIGHT,
       preserveObjectStacking: true,
-      backgroundColor: "#ffffff"
+      backgroundColor: "#ffffff",
+      selection: true,
+      allowTouchScrolling: false
     });
     window.fabricCanvas = visualEditorCanvas;
     window.visualCanvas = visualEditorCanvas;
+    bindVisualCanvasSizeControls();
+    applyVisualCanvasSize(VISUAL_CANVAS_WIDTH, VISUAL_CANVAS_HEIGHT, visualCanvasPreset, { silent: true, scaleObjects: false });
 
     document.getElementById("visualTemplateInput")?.addEventListener("change", (event) => {
       readImageFile(event.target.files[0], loadBackgroundTemplate);
@@ -2650,37 +3021,50 @@
       readImageFile(event.target.files[0], uploadBirthdayPhoto);
       event.target.value = "";
     });
-    document.getElementById("visualBringFrontButton")?.addEventListener("click", () => {
-      const selected = visualEditorCanvas.getActiveObject();
-      if (!selected || selected.visualRole === "backgroundTemplate") return;
-      visualEditorCanvas.bringToFront(selected);
-      visualEditorCanvas.renderAll();
-      syncVisualEditorToPreview();
-      forceSaveVisualCanvasImage();
-    });
-    document.getElementById("visualSendBackButton")?.addEventListener("click", () => {
-      const selected = visualEditorCanvas.getActiveObject();
-      if (!selected || selected.visualRole === "backgroundTemplate") return;
-      visualEditorCanvas.sendBackwards(selected);
-      visualEditorCanvas.getObjects()
-        .filter((object) => object.visualRole === "backgroundTemplate")
-        .forEach((object) => visualEditorCanvas.sendToBack(object));
-      visualEditorCanvas.setActiveObject(selected);
-      visualEditorCanvas.renderAll();
-      syncVisualEditorToPreview();
-      forceSaveVisualCanvasImage();
-    });
-    visualEditorCanvas.on("object:modified", scheduleVisualPreviewSync);
-    visualEditorCanvas.on("object:moving", scheduleVisualPreviewSync);
-    visualEditorCanvas.on("object:scaling", scheduleVisualPreviewSync);
-    visualEditorCanvas.on("object:rotating", scheduleVisualPreviewSync);
-    visualEditorCanvas.on("object:removed", scheduleVisualPreviewSync);
-    visualEditorCanvas.on("object:added", scheduleVisualPreviewSync);
+    document.getElementById("visualAddTextButton")?.addEventListener("click", addVisualText);
+    document.getElementById("visualDuplicateButton")?.addEventListener("click", duplicateSelectedVisualObject);
+    document.getElementById("visualUndoButton")?.addEventListener("click", undoVisualChange);
+    document.getElementById("visualRedoButton")?.addEventListener("click", redoVisualChange);
+    document.getElementById("visualBringFrontButton")?.addEventListener("click", () => moveSelectedVisualLayer(1));
+    document.getElementById("visualSendBackButton")?.addEventListener("click", () => moveSelectedVisualLayer(-1));
+    document.getElementById("visualLayerUpButton")?.addEventListener("click", () => moveSelectedVisualLayer(1));
+    document.getElementById("visualLayerDownButton")?.addEventListener("click", () => moveSelectedVisualLayer(-1));
+    document.getElementById("visualLockButton")?.addEventListener("click", () => { const selected = getSelectedVisualObject(); if (!selected) return; setVisualObjectLocked(selected, true); commitVisualChange("Elemento bloqueado."); });
+    document.getElementById("visualUnlockButton")?.addEventListener("click", () => { const selected = visualEditorCanvas.getActiveObject() || visualEditorCanvas.getObjects().find((object) => object.locked && object.visualRole !== "backgroundTemplate"); if (!selected) return; setVisualObjectLocked(selected, false); visualEditorCanvas.setActiveObject(selected); commitVisualChange("Elemento desbloqueado."); });
+    document.getElementById("visualUnlockBackgroundButton")?.addEventListener("click", () => setBackgroundLocked(false));
 
+    visualEditorCanvas.on("selection:created", updateVisualPanels);
+    visualEditorCanvas.on("selection:updated", updateVisualPanels);
+    visualEditorCanvas.on("selection:cleared", updateVisualPanels);
+    visualEditorCanvas.on("object:moving", (event) => { if (isVisualFrameObject(event.target)) syncFrameClip(event.target); updateVisualPositionPanel(); scheduleVisualPreviewSync(); });
+    visualEditorCanvas.on("object:scaling", (event) => { if (isVisualFrameObject(event.target)) syncFrameClip(event.target); updateVisualPositionPanel(); scheduleVisualPreviewSync(); });
+    visualEditorCanvas.on("object:rotating", (event) => {
+      updateVisualTextPanel();
+      updateVisualPositionPanel();
+      if (isVisualFrameObject(event.target)) syncFrameClip(event.target);
+      scheduleVisualPreviewSync();
+    });
+    visualEditorCanvas.on("object:modified", () => commitVisualChange("Elemento actualizado."));
+    visualEditorCanvas.on("object:added", () => {
+      if (!visualHistoryRestoring) updateVisualLayersPanel();
+    });
+    visualEditorCanvas.on("object:removed", () => {
+      if (!visualHistoryRestoring) updateVisualLayersPanel();
+    });
+    visualEditorCanvas.on("text:changed", () => commitVisualChange("Texto actualizado."));
+
+    bindVisualTextControls();
+    bindVisualPhotoControls();
+    bindVisualElementControls();
+    bindVisualEffectControls();
+    bindVisualKeyboardShortcuts();
     document.getElementById("visualDeleteButton")?.addEventListener("click", deleteSelectedObject);
     document.getElementById("visualExportPngButton")?.addEventListener("click", exportVisualPNG);
+    document.getElementById("visualExportJpgButton")?.addEventListener("click", exportVisualJPG);
+    document.getElementById("visualExportPdfButton")?.addEventListener("click", exportVisualPDF);
     document.getElementById("visualSaveButton")?.addEventListener("click", saveVisualDesign);
 
+    updateVisualPanels();
     loadVisualDesign();
   }
 
@@ -2690,6 +3074,8 @@
   window.saveVisualDesign = saveVisualDesign;
   window.loadVisualDesign = loadVisualDesign;
   window.exportVisualPNG = exportVisualPNG;
+  window.exportVisualJPG = exportVisualJPG;
+  window.exportVisualPDF = exportVisualPDF;
   window.deleteSelectedObject = deleteSelectedObject;
   window.syncVisualEditorToPreview = syncVisualEditorToPreview;
   window.scheduleVisualPreviewSync = scheduleVisualPreviewSync;
@@ -2703,14 +3089,7 @@
     const form = document.getElementById("professionalEditorForm");
 
     if (!invitation) {
-      document.querySelector(".builder-panel").innerHTML = `
-        <div class="empty-state">
-          <h1>Invitación no encontrada</h1>
-          <p>Revisa el enlace o vuelve al listado principal.</p>
-          <a class="button primary" href="index.html">Volver al inicio</a>
-        </div>
-      `;
-      document.querySelector(".live-preview-panel").classList.add("hidden");
+      createNewInvitation({ preset: "mobile-invitation", title: "Nuevo diseno", templateChoice: "blank" });
       return;
     }
 
@@ -2719,6 +3098,7 @@
     document.title = `Editar | ${invitation.titulo}`;
     fillProfessionalEditor(activeEditorInvitation);
     initShareSection(activeEditorInvitation);
+    initEditorShareModal();
     updatePreview();
     initVisualEditor();
 
@@ -2727,7 +3107,10 @@
         document.querySelectorAll(".tab-button").forEach((item) => item.classList.remove("active"));
         document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.remove("active"));
         button.classList.add("active");
-        document.querySelector(`[data-panel="${button.dataset.tab}"]`).classList.add("active");
+        const activePanel = document.querySelector(`[data-panel="${button.dataset.tab}"]`);
+        activePanel?.classList.add("active");
+        document.querySelector(".builder-panel")?.scrollTo({ top: 0, behavior: "smooth" });
+        activePanel?.scrollIntoView({ block: "start", behavior: "smooth" });
       });
     });
 
@@ -2763,7 +3146,7 @@
       updatePreview();
     });
     document.getElementById("viewAsGuestButton").addEventListener("click", viewAsGuest);
-    document.getElementById("copyEditorPublicLinkButton").addEventListener("click", async (event) => {
+    document.getElementById("copyEditorPublicLinkButton")?.addEventListener("click", async (event) => {
       const button = event.currentTarget;
       const invitation = getProfessionalFormData();
       try {

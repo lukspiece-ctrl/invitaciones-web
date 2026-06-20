@@ -6,28 +6,242 @@
   <title>Invitaciones Web</title>
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body data-page="home">
-  <header class="site-header">
-    <section class="hero container">
-      <div class="hero-content">
-        <p class="eyebrow">Eventos digitales</p>
-        <h1>Invitaciones listas para compartir</h1>
-        <p>Administra cumpleaños, bodas, bautismos y eventos desde una estructura simple para GitHub Pages.</p>
-        <button id="createInvitationButton" class="button primary home-create-button" type="button">Crear invitación</button>
-      </div>
-    </section>
+<body data-page="home" class="landing-home">
+  <header class="landing-header">
+    <a class="landing-logo" href="index.html" aria-label="Invitaciones Web">
+      <span>iw</span>
+      <strong>Invitaciones Web</strong>
+    </a>
+
+    <nav class="landing-nav" aria-label="Navegacion principal">
+      <a href="#inicio">Inicio</a>
+      <a href="#plantillas">Plantillas</a>
+      <a href="editor.html">Editor</a>
+      <a href="#funciones">Funciones</a>
+      <a href="#precios">Precios</a>
+      <a href="#contacto">Contacto</a>
+    </nav>
+
+    <a class="landing-header-cta" href="editor.html" data-open-design-selector>Nuevo dise�o</a>
   </header>
 
-  <main class="container main-section">
-    <div class="section-heading">
-      <div>
-        <p class="eyebrow">Disponibles</p>
-        <h2>Invitaciones</h2>
+  <main>
+    <section class="landing-hero" id="inicio">
+      <div class="landing-hero-glow hero-glow-one"></div>
+      <div class="landing-hero-glow hero-glow-two"></div>
+      <div class="landing-orbit orbit-one"></div>
+      <div class="landing-orbit orbit-two"></div>
+
+      <div class="landing-hero-content" data-reveal>
+        <p class="landing-eyebrow">Eventos digitales premium</p>
+        <h1>Crea Invitaciones Digitales Inolvidables</h1>
+        <p>
+          Diseña, personaliza y comparte invitaciones para cumpleaños, bodas, bautismos,
+          quinceañeras y eventos corporativos. Recibe confirmaciones RSVP, genera QR y exporta
+          diseños listos para publicar.
+        </p>
+        <div class="landing-hero-actions">
+          <a id="createInvitationButton" class="landing-button landing-button-primary" href="editor.html" data-open-design-selector>Nuevo dise�o</a>
+          <a class="landing-button landing-button-secondary" href="invitacion.html">Ver Demostración</a>
+        </div>
+        <div class="landing-trust-row" aria-label="Beneficios">
+          <span>Editor visual</span>
+          <span>QR automático</span>
+          <span>RSVP en vivo</span>
+        </div>
       </div>
-      <span id="invitationCount" class="counter">0 eventos</span>
-    </div>
-    <section id="invitationList" class="cards-grid" aria-live="polite"></section>
+
+      <div class="landing-visual" aria-label="Vista previa del editor" data-reveal>
+        <div class="mockup-laptop">
+          <div class="mockup-topbar">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="mockup-editor">
+            <aside>
+              <b></b><b></b><b></b><b></b>
+            </aside>
+            <div class="mockup-canvas">
+              <div class="mockup-invitation">
+                <span class="mockup-badge">Boda</span>
+                <h2>Lucía & Mateo</h2>
+                <p>20 · 09 · 2026</p>
+                <button>Confirmar</button>
+              </div>
+            </div>
+            <section>
+              <i></i><i></i><i></i>
+            </section>
+          </div>
+        </div>
+
+        <article class="floating-card card-wedding">
+          <span>Boda elegante</span>
+          <strong>Lucía & Mateo</strong>
+        </article>
+        <article class="floating-card card-birthday">
+          <span>Cumpleaños</span>
+          <strong>Fiesta de Sofi</strong>
+        </article>
+        <article class="floating-card card-baptism">
+          <span>Bautismo</span>
+          <strong>Emma</strong>
+        </article>
+        <article class="floating-card card-quince">
+          <span>Quinceañera</span>
+          <strong>Valentina XV</strong>
+        </article>
+        <article class="floating-card card-corporate">
+          <span>Corporativo</span>
+          <strong>Launch Night</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="landing-section" id="funciones">
+      <div class="landing-section-heading" data-reveal>
+        <p class="landing-eyebrow">Funciones clave</p>
+        <h2>Todo lo que necesitas para publicar una invitación profesional</h2>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature-card" data-reveal><span>✦</span><h3>Crear Eventos</h3><p>Configura fecha, lugar, anfitrión, mapa y datos principales en minutos.</p></article>
+        <article class="feature-card" data-reveal><span>✎</span><h3>Editor Visual Estilo Canva</h3><p>Agrega textos, fotos, marcos, stickers, capas y efectos visuales.</p></article>
+        <article class="feature-card" data-reveal><span>◉</span><h3>Vista Previa en Tiempo Real</h3><p>Revisa exactamente cómo se verá la invitación antes de compartirla.</p></article>
+        <article class="feature-card" data-reveal><span>⇩</span><h3>Exportación Avanzada</h3><p>Exporta PNG, HTML público y códigos QR listos para enviar.</p></article>
+        <article class="feature-card" data-reveal><span>↗</span><h3>Compartir Fácilmente</h3><p>Genera enlaces públicos compatibles con WhatsApp, redes y GitHub Pages.</p></article>
+        <article class="feature-card" data-reveal><span>✓</span><h3>RSVP Inteligente</h3><p>Recibe confirmaciones de asistencia conectadas a tu flujo de gestión.</p></article>
+        <article class="feature-card" data-reveal><span>▦</span><h3>Panel de Administración</h3><p>Gestiona invitaciones, confirmados, enlaces, exportaciones y datos del evento.</p></article>
+      </div>
+    </section>
+
+    <section class="landing-section workflow-section">
+      <div class="landing-section-heading" data-reveal>
+        <p class="landing-eyebrow">Cómo funciona</p>
+        <h2>De la idea al enlace público en cuatro pasos</h2>
+      </div>
+
+      <div class="workflow-grid">
+        <article data-reveal><span>1</span><h3>Crear Evento</h3><p>Ingresa los datos principales.</p></article>
+        <article data-reveal><span>2</span><h3>Diseñar Invitación</h3><p>Personaliza visuales, textos y fotos.</p></article>
+        <article data-reveal><span>3</span><h3>Compartir Enlace/QR</h3><p>Publica y envía tu invitación.</p></article>
+        <article data-reveal><span>4</span><h3>Recibir Confirmaciones</h3><p>Centraliza respuestas RSVP.</p></article>
+      </div>
+    </section>
+
+    <section class="landing-section comparison-section" id="plantillas">
+      <div class="comparison-card before-card" data-reveal>
+        <p>Antes</p>
+        <h3>Diseño Simple</h3>
+        <div class="simple-preview">
+          <span>Invitación</span>
+          <strong>Mi evento</strong>
+          <small>Fecha y lugar</small>
+        </div>
+      </div>
+      <div class="comparison-card after-card" data-reveal>
+        <p>Después</p>
+        <h3>Invitación Profesional Animada</h3>
+        <div class="premium-preview">
+          <span>Premium</span>
+          <strong>Una experiencia visual</strong>
+          <small>Con RSVP, QR, música y efectos</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats-section" id="precios">
+      <div class="stat-card" data-reveal><strong>Miles</strong><span>de invitaciones creadas</span></div>
+      <div class="stat-card" data-reveal><strong>Miles</strong><span>de invitados confirmados</span></div>
+      <div class="stat-card" data-reveal><strong>113</strong><span>eventos publicados</span></div>
+      <div class="stat-card" data-reveal><strong>100+</strong><span>usuarios activos</span></div>
+    </section>
+
+    <section class="landing-section testimonials-section">
+      <div class="landing-section-heading" data-reveal>
+        <p class="landing-eyebrow">Testimonios</p>
+        <h2>Eventos que se ven bien desde el primer enlace</h2>
+      </div>
+      <div class="testimonial-grid">
+        <article data-reveal><p>“Armamos la invitación de boda en una tarde y el QR nos salvó la organización.”</p><strong>Camila R.</strong></article>
+        <article data-reveal><p>“El editor visual hizo que la invitación de quince pareciera hecha por una agencia.”</p><strong>Mariana G.</strong></article>
+        <article data-reveal><p>“Compartimos el evento corporativo y las confirmaciones quedaron ordenadas.”</p><strong>Diego P.</strong></article>
+      </div>
+    </section>
+
+    <section class="my-invitations-section">
+      <div class="section-heading" data-reveal id="invitaciones">
+        <div>
+          <p class="landing-eyebrow">Panel rápido</p>
+          <h2>Mis dise�os</h2>
+        </div>
+        <span id="invitationCount" class="counter">0 eventos</span>
+      </div>
+      <section id="invitationList" class="cards-grid" aria-live="polite"></section>
+    </section>
+
+    <section class="final-cta" id="contacto" data-reveal>
+      <div class="confetti-dot dot-one"></div>
+      <div class="confetti-dot dot-two"></div>
+      <div class="confetti-dot dot-three"></div>
+      <p class="landing-eyebrow">Listo para publicar</p>
+      <h2>Empieza a crear dise�os que sorprendan a todos</h2>
+      <a class="landing-button landing-button-primary" href="editor.html" data-open-design-selector>Crear mi primer dise�o</a>
+    </section>
   </main>
+
+
+  <div class="design-selector-modal" id="designSelectorModal" hidden>
+    <div class="design-selector-backdrop" data-close-design-selector></div>
+    <section class="design-selector-dialog" role="dialog" aria-modal="true" aria-labelledby="designSelectorTitle">
+      <button class="design-selector-close" type="button" data-close-design-selector aria-label="Cerrar">x</button>
+      <p class="landing-eyebrow">Nuevo dise�o</p>
+      <h2 id="designSelectorTitle">Elige qu� quieres crear</h2>
+      <p class="design-selector-copy">Selecciona un formato, elige una plantilla y abre el editor con el lienzo correcto.</p>
+
+      <div class="design-type-grid">
+        <button type="button" data-design-preset="mobile-invitation" data-design-title="Invitaci�n m�vil"><span>IV</span><strong>Invitaci�n m�vil</strong><small>390 x 844</small></button>
+        <button type="button" data-design-preset="mobile-invitation" data-design-title="Cumplea�os"><span>CU</span><strong>Cumplea�os</strong><small>Plantillas festivas</small></button>
+        <button type="button" data-design-preset="mobile-invitation" data-design-title="Boda"><span>BO</span><strong>Boda</strong><small>Elegante y RSVP</small></button>
+        <button type="button" data-design-preset="mobile-invitation" data-design-title="Bautismo"><span>BA</span><strong>Bautismo</strong><small>Suave y familiar</small></button>
+        <button type="button" data-design-preset="mobile-invitation" data-design-title="Evento"><span>EV</span><strong>Evento</strong><small>General</small></button>
+        <button type="button" data-design-preset="instagram-post" data-design-title="Post Instagram"><span>IG</span><strong>Post Instagram</strong><small>1080 x 1080</small></button>
+        <button type="button" data-design-preset="instagram-story" data-design-title="Historia Instagram"><span>ST</span><strong>Historia Instagram</strong><small>1080 x 1920</small></button>
+        <button type="button" data-design-preset="whatsapp-status" data-design-title="Estado WhatsApp"><span>WA</span><strong>Estado WhatsApp</strong><small>1080 x 1920</small></button>
+        <button type="button" data-design-preset="facebook-post" data-design-title="Publicaci�n Facebook"><span>FB</span><strong>Publicaci�n Facebook</strong><small>1200 x 1200</small></button>
+        <button type="button" data-design-preset="web-banner" data-design-title="Banner Web"><span>BW</span><strong>Banner Web</strong><small>1920 x 1080</small></button>
+        <button type="button" data-design-preset="landing-mobile" data-design-title="Landing Mobile"><span>LM</span><strong>Landing Mobile</strong><small>390 x 844</small></button>
+        <button type="button" data-design-preset="custom" data-design-title="Tama�o Personalizado"><span>PX</span><strong>Tama�o Personalizado</strong><small>Ancho x Alto</small></button>
+      </div>
+
+      <div class="template-choice-panel" id="templateChoicePanel" hidden>
+        <div>
+          <h3>Elige una plantilla</h3>
+          <p>Recomendadas, recientes o lienzo en blanco.</p>
+        </div>
+        <div class="template-choice-grid">
+          <button type="button" data-template-choice="recommended">Plantillas recomendadas</button>
+          <button type="button" data-template-choice="recent">Plantillas recientes</button>
+          <button type="button" data-template-choice="blank">Lienzo en blanco</button>
+        </div>
+        <div class="custom-design-size" id="homeCustomDesignSize" hidden>
+          <input id="homeCustomWidth" type="number" min="100" max="4000" value="390" aria-label="Ancho">
+          <span>x</span>
+          <input id="homeCustomHeight" type="number" min="100" max="4000" value="844" aria-label="Alto">
+        </div>
+      </div>
+    </section>
+  </div>
+  <footer class="landing-footer">
+    <div>
+      <strong>Invitaciones Web</strong>
+      <p>Constructor visual de invitaciones digitales para eventos memorables.</p>
+    </div>
+    <a href="#funciones">Acerca de</a>
+    <a href="#inicio">Ayuda</a>
+    <a href="#contacto">Contacto</a>
+    <a href="#contacto">Política de privacidad</a>
+    <a href="#contacto">Términos de uso</a>
+  </footer>
 
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>

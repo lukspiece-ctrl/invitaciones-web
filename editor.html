@@ -170,6 +170,70 @@
 
 <body data-page="editor" class="pro-editor-body">
   <main class="professional-editor">
+    <header class="editor-topbar" aria-label="Barra superior del editor">
+      <div class="editor-topbar-left">
+        <span class="editor-logo-mark" aria-hidden="true">iw</span>
+        <div class="editor-title-block">
+          <span class="editor-kicker">Invitaciones Web</span>
+          <strong id="previewTitle">Invitación</strong>
+        </div>
+        <a class="button secondary editor-nav-link" href="index.html">Volver al Inicio</a>
+        <a class="button secondary editor-nav-link" href="index.html#invitaciones">Mis Invitaciones</a>
+        <a class="button secondary editor-nav-link" href="admin.html">Administración</a>
+        <button class="button secondary" id="visualUndoButton" type="button">Deshacer</button>
+        <button class="button secondary" id="visualRedoButton" type="button">Rehacer</button>
+      </div>
+
+      <div class="editor-topbar-center" aria-label="Vista y zoom">
+        <label class="editor-canvas-size-control">
+          <span>Formato</span>
+          <select id="visualCanvasPresetSelect">
+            <option value="mobile-invitation">Invitación móvil 390x844</option>
+            <option value="instagram-post">Instagram Post 1080x1080</option>
+            <option value="instagram-story">Instagram Story 1080x1920</option>
+            <option value="whatsapp-status">WhatsApp Status 1080x1920</option>
+            <option value="facebook-post">Facebook Post 1200x1200</option>
+            <option value="facebook-banner">Facebook Banner 1200x628</option>
+            <option value="web-banner">Banner Web 1920x1080</option>
+            <option value="landing-mobile">Landing Mobile 390x844</option>
+            <option value="custom">Tamaño Personalizado</option>
+          </select>
+        </label>
+        <div class="editor-custom-size" id="visualCustomSizeFields" hidden>
+          <input id="visualCustomWidth" type="number" min="100" max="4000" value="390" aria-label="Ancho personalizado">
+          <span>x</span>
+          <input id="visualCustomHeight" type="number" min="100" max="4000" value="844" aria-label="Alto personalizado">
+          <button class="button secondary" id="visualApplyCustomSizeButton" type="button">Aplicar</button>
+        </div>
+        <button class="button secondary" type="button" data-zoom="50">50%</button>
+        <button class="button secondary active" type="button" data-zoom="75">75%</button>
+        <button class="button secondary" type="button" data-zoom="100">100%</button>
+        <button id="mobilePreviewButton" class="button secondary" type="button">Vista móvil</button>
+        <button id="desktopPreviewButton" class="button secondary active" type="button">Vista desktop</button>
+      </div>
+
+      <div class="editor-topbar-right">
+        <span class="editor-save-state">Guardado automático</span>
+        <button class="button secondary" id="viewAsGuestButton" type="button">Vista previa</button>
+        <button class="button secondary" id="visualExportPngButton" type="button">Exportar PNG</button>
+        <button class="button secondary" id="visualExportJpgButton" type="button">Exportar JPG</button>
+        <button class="button secondary" id="visualExportPdfButton" type="button">Exportar PDF</button>
+        <button class="button secondary" id="shareInvitationButton" type="button" aria-haspopup="dialog" aria-controls="shareInvitationModal">Compartir</button>
+        <button class="button primary" id="visualSaveButton" type="button">Publicar</button>
+      </div>
+    </header>
+
+    <nav class="editor-rail" aria-label="Herramientas principales">
+      <a class="editor-rail-button active" href="#visualElementLibrary" data-editor-panel-target="elements" title="Elementos" aria-label="Elementos">✦</a>
+      <a class="editor-rail-button" href="#visualTextPanel" data-editor-panel-target="text" title="Texto" aria-label="Texto">T</a>
+      <a class="editor-rail-button" href="#visualPhotoInput" data-editor-panel-target="photos" title="Fotos" aria-label="Fotos">▧</a>
+      <a class="editor-rail-button" href="#visualElementCategories" data-editor-panel-target="stickers" title="Stickers" aria-label="Stickers">★</a>
+      <a class="editor-rail-button" href="#visualFramesPanel" data-editor-panel-target="frames" title="Marcos" aria-label="Marcos">□</a>
+      <a class="editor-rail-button" href="#visualEffectsPanel" data-editor-panel-target="animations" title="Animaciones" aria-label="Animaciones">↝</a>
+      <span class="editor-rail-spacer"></span>
+      <a class="editor-rail-button" href="#visualLayersList" data-editor-panel-target="layers" title="Capas" aria-label="Capas">☰</a>
+      <a class="editor-rail-button" href="#visualSettingsPanel" data-editor-panel-target="settings" title="Configuración" aria-label="Configuración">⚙</a>
+    </nav>
 
     <aside class="builder-panel">
       <div class="builder-scroll">
@@ -186,6 +250,81 @@
 
           <a class="button secondary" href="index.html">Volver al inicio</a>
         </div>
+
+        <section class="editor-main-menu" aria-label="Biblioteca del editor">
+          <a href="#visualTemplateInput"><span>▦</span><strong>Plantillas</strong></a>
+          <a href="#visualElementLibrary"><span>✦</span><strong>Elementos</strong></a>
+          <a href="#visualTextPanel"><span>T</span><strong>Texto</strong></a>
+          <a href="#visualPhotoInput"><span>▧</span><strong>Imágenes</strong></a>
+          <a href="#visualComponentUrl"><span>♪</span><strong>Audio</strong></a>
+          <a href="#visualComponentUrl"><span>▶</span><strong>Videos</strong></a>
+          <a href="#visualTemplateInput"><span>◐</span><strong>Fondos</strong></a>
+          <a href="#visualEffectsPanel"><span>✺</span><strong>Efectos</strong></a>
+          <a href="#visualComponentUrl"><span>⌖</span><strong>Mapas</strong></a>
+          <a href="#visualLayersList"><span>✓</span><strong>RSVP</strong></a>
+          <a href="#visualSettingsPanel"><span>⚙</span><strong>Configuración</strong></a>
+        </section>
+
+        <section class="editor-template-library" aria-label="Plantillas">
+          <div class="editor-section-heading">
+            <span>Plantillas</span>
+          </div>
+          <div class="editor-template-grid">
+            <button type="button" data-template-choice="recommended">Recomendadas</button>
+            <button type="button" data-template-choice="recent">Recientes</button>
+            <button type="button" data-template-choice="blank">Lienzo en blanco</button>
+          </div>
+        </section>
+
+        <section class="editor-sections-list" aria-label="Secciones de la invitación">
+          <article><span></span><div><strong>Portada</strong><small>Imagen principal y título</small></div><button type="button">Editar</button></article>
+          <article><span></span><div><strong>Información</strong><small>Fecha, hora y lugar</small></div><button type="button">Editar</button></article>
+          <article><span></span><div><strong>Cuenta regresiva</strong><small>Tiempo restante del evento</small></div><button type="button">Editar</button></article>
+          <article><span></span><div><strong>Mensaje</strong><small>Texto para invitados</small></div><button type="button">Editar</button></article>
+          <article><span></span><div><strong>Galería</strong><small>Fotos y recuerdos</small></div><button type="button">Editar</button></article>
+          <article><span></span><div><strong>RSVP</strong><small>Confirmación de asistencia</small></div><button type="button">Editar</button></article>
+        </section>
+
+        <div class="editor-left-tabs" aria-label="Panel del editor visual">
+          <a class="active" href="#visualElementLibrary">Elementos</a>
+          <a href="#visualTemplateInput">Plantillas</a>
+          <a href="#visualLayersList">Capas</a>
+        </div>
+
+        <section class="editor-left-section" aria-label="Agregar">
+          <div class="editor-section-heading">
+            <span>Agregar</span>
+          </div>
+          <div class="editor-add-grid" aria-hidden="true">
+            <span><b>T</b><small>Texto</small></span>
+            <span><b>▧</b><small>Foto</small></span>
+            <span><b>○</b><small>Forma</small></span>
+            <span><b>□</b><small>Marco</small></span>
+            <span><b>⌖</b><small>Mapa</small></span>
+            <span><b>QR</b><small>QR</small></span>
+          </div>
+        </section>
+
+        <section class="editor-left-section editor-sticker-strip" aria-label="Stickers">
+          <div class="editor-section-heading">
+            <span>Stickers</span>
+          </div>
+          <div class="editor-chip-grid">
+            <span>🎈</span><span>✿</span><span>🎤</span><span>♡</span><span>★</span><span>⚽</span>
+          </div>
+        </section>
+
+        <section class="editor-left-section editor-effect-strip" aria-label="Efectos">
+          <div class="editor-section-heading">
+            <span>Efectos</span>
+          </div>
+          <div class="editor-effect-grid">
+            <a href="#visualEffectsPanel">Partículas</a>
+            <a href="#visualEffectsPanel">Destellos</a>
+            <a href="#visualEffectsPanel">Ondas</a>
+            <a href="#visualEffectsPanel">Confeti</a>
+          </div>
+        </section>
 
         <div class="editor-tabs" role="tablist" aria-label="Secciones del editor">
           <button class="tab-button active" type="button" data-tab="general">General</button>
@@ -287,15 +426,14 @@
                   Subir foto
                   <input id="visualPhotoInput" type="file" accept="image/*">
                 </label>
-                <button class="button secondary" id="visualBringFrontButton" type="button">Enviar foto al frente</button>
-                <button class="button secondary" id="visualSendBackButton" type="button">Enviar foto atrás</button>
-                <button class="button danger" id="visualDeleteButton" type="button">Eliminar elemento seleccionado</button>
-                <button class="button secondary" id="visualExportPngButton" type="button">Exportar PNG</button>
-                <button class="button primary" id="visualSaveButton" type="button">Guardar diseño</button>
-              </div>
-
-              <div class="visual-canvas-shell">
-                <canvas id="visualInvitationCanvas" class="visual-canvas" width="720" height="1280"></canvas>
+                <button class="button secondary" id="visualAddTextButton" type="button">Agregar texto</button>
+                <button class="button secondary" id="visualDuplicateButton" type="button">Duplicar</button>
+                <button class="button secondary" id="visualBringFrontButton" type="button">Subir capa</button>
+                <button class="button secondary" id="visualSendBackButton" type="button">Bajar capa</button>
+                <button class="button secondary" id="visualLockButton" type="button">Bloquear</button>
+                <button class="button secondary" id="visualUnlockButton" type="button">Desbloquear</button>
+                <button class="button secondary" id="visualUnlockBackgroundButton" type="button">Desbloquear fondo</button>
+                <button class="button danger" id="visualDeleteButton" type="button">Eliminar</button>
               </div>
 
               <p class="field-note" id="visualEditorStatus" role="status"></p>
@@ -339,8 +477,6 @@
         </form>
       <div class="editor-actions">
         <button class="button primary" id="saveInvitationButton" type="submit" form="professionalEditorForm">Guardar cambios</button>
-        <button class="button secondary" id="viewAsGuestButton" type="button">Ver como invitado</button>
-        <button class="button secondary" id="copyEditorPublicLinkButton" type="button">Copiar enlace público</button>
         <button class="button secondary" id="duplicateInvitationButton" type="button">Duplicar</button>
         <button class="button secondary" id="exportInvitationButton" type="button">Exportar JSON</button>
         <button class="button secondary" id="exportPublicHtmlButton" type="button">Exportar HTML p&uacute;blico</button>
@@ -354,13 +490,351 @@
         <p id="editorMessage" class="success-message" role="status"></p>
       </div>
 
+      </div>
+    </aside>
+
+    <div class="visual-workspace">
+      <div class="visual-canvas-shell">
+        <canvas id="visualInvitationCanvas" class="visual-canvas" width="390" height="844"></canvas>
+      </div>
+
+        <section class="live-preview-panel">
+        <div class="preview-toolbar" aria-hidden="true"></div>
+
+        <div class="preview-stage">
+          <div id="previewDevice" class="preview-device preview-zoom-75 desktop-preview">
+            <iframe id="livePreviewFrame" class="live-preview-frame" title="Vista previa de invitación"></iframe>
+          </div>
+        </div>
+      </section>
+
+    <aside class="visual-side-panel" aria-label="Propiedades del editor visual">
+        <div class="editor-properties-header">
+          <span>PROPIEDADES</span>
+          <div class="editor-property-tabs" aria-label="Pestañas de propiedades">
+            <a class="active" href="#visualTextPanel">Texto</a>
+            <a href="#visualSettingsPanel">Posición</a>
+            <a href="#visualEffectsPanel">Efectos</a>
+          </div>
+        </div>
+
+        <div class="visual-empty-state" id="visualEmptyState">
+          <span>✦</span>
+          <h2>Selecciona un elemento</h2>
+          <p>Haz clic en un texto, imagen, sticker, botón o sección del lienzo para editar sus propiedades aquí.</p>
+        </div>
+
+        <section class="visual-properties-card" id="visualTextPanel">
+          <div class="panel-heading small-heading">
+            <div>
+              <p class="eyebrow">Texto</p>
+              <h2>Propiedades</h2>
+            </div>
+          </div>
+
+          <div class="visual-control-grid">
+            <label class="full-field">Texto
+              <textarea id="visualTextValue" rows="3" placeholder="Selecciona un texto"></textarea>
+            </label>
+            <label>Fuente
+              <select id="visualFontFamily">
+                <option value="Arial">Arial</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Verdana">Verdana</option>
+                <option value="Trebuchet MS">Trebuchet MS</option>
+                <option value="Courier New">Courier New</option>
+                <option value="Impact">Impact</option>
+              </select>
+            </label>
+            <label>Tamano
+              <input id="visualFontSize" type="number" min="8" max="220" step="1">
+            </label>
+            <label>Color
+              <input id="visualTextColor" type="color">
+            </label>
+            <label>Rotacion
+              <input id="visualTextAngle" type="number" min="-180" max="180" step="1">
+            </label>
+          </div>
+
+          <div class="visual-toggle-row">
+            <label><input id="visualTextBold" type="checkbox"> Negrita</label>
+            <label><input id="visualTextItalic" type="checkbox"> Cursiva</label>
+          </div>
+
+          <div class="visual-align-row" aria-label="Alineacion del texto">
+            <button class="button secondary" type="button" data-visual-align="left">Izquierda</button>
+            <button class="button secondary" type="button" data-visual-align="center">Centro</button>
+            <button class="button secondary" type="button" data-visual-align="right">Derecha</button>
+          </div>
+        </section>
+
+        <section class="visual-properties-card" id="visualFramesPanel">
+          <div class="panel-heading small-heading">
+            <div>
+              <p class="eyebrow">Marcos</p>
+              <h2>Foto</h2>
+            </div>
+          </div>
+
+          <div class="visual-frame-grid">
+            <button class="button secondary" type="button" data-visual-frame="rect">Rectangulo</button>
+            <button class="button secondary" type="button" data-visual-frame="square">Cuadrado</button>
+            <button class="button secondary" type="button" data-visual-frame="circle">Circulo</button>
+            <button class="button secondary" type="button" data-visual-frame="oval">Ovalo</button>
+            <button class="button secondary" type="button" data-visual-frame="heart">Corazon</button>
+            <button class="button secondary" type="button" data-visual-frame="star">Estrella</button>
+          </div>
+
+          <div class="visual-layer-actions">
+            <button class="button secondary" id="visualFitPhotoButton" type="button">Ajustar foto</button>
+            <button class="button secondary" id="visualCenterPhotoButton" type="button">Centrar foto</button>
+            <label class="button secondary visual-file-button">
+              Reemplazar foto
+              <input id="visualReplacePhotoInput" type="file" accept="image/*">
+            </label>
+          </div>
+
+          <label>Zoom foto
+            <input id="visualPhotoZoom" type="range" min="20" max="300" value="100">
+          </label>
+        </section>
+
+        <section class="visual-properties-card">
+          <div class="panel-heading small-heading">
+            <div>
+              <p class="eyebrow">Filtros</p>
+              <h2>Imagen</h2>
+            </div>
+          </div>
+
+          <div class="visual-control-grid">
+            <label>Brillo <input id="visualBrightness" type="range" min="-100" max="100" value="0"></label>
+            <label>Contraste <input id="visualContrast" type="range" min="-100" max="100" value="0"></label>
+            <label>Saturacion <input id="visualSaturation" type="range" min="-100" max="100" value="0"></label>
+            <label>Opacidad <input id="visualOpacity" type="range" min="0" max="100" value="100"></label>
+          </div>
+
+          <div class="visual-toggle-row">
+            <label><input id="visualGrayscale" type="checkbox"> Blanco y negro</label>
+            <label><input id="visualSepia" type="checkbox"> Sepia</label>
+          </div>
+        </section>
+
+        <section class="visual-properties-card">
+          <div class="panel-heading small-heading">
+            <div>
+              <p class="eyebrow">Bordes</p>
+              <h2>Estilo</h2>
+            </div>
+          </div>
+
+          <div class="visual-control-grid">
+            <label>Color borde <input id="visualStrokeColor" type="color" value="#ffffff"></label>
+            <label>Grosor borde <input id="visualStrokeWidth" type="number" min="0" max="80" value="0"></label>
+            <label>Radio borde <input id="visualCornerRadius" type="number" min="0" max="220" value="0"></label>
+            <label>Glow <input id="visualGlow" type="range" min="0" max="80" value="0"></label>
+          </div>
+
+          <div class="visual-toggle-row">
+            <label><input id="visualShadow" type="checkbox"> Sombra</label>
+          </div>
+        </section>
+
+        <section class="visual-properties-card">
+          <div class="panel-heading small-heading">
+            <div>
+              <p class="eyebrow">Elementos</p>
+              <h2>Biblioteca</h2>
+            </div>
+          </div>
+
+          <label class="full-field">Buscar elementos
+            <input id="visualElementSearch" type="search" placeholder="corazon, estrella, corona, musica">
+          </label>
+
+          <div id="visualElementCategories" class="visual-category-row" aria-label="Categorias de elementos"></div>
+          <div id="visualElementLibrary" class="visual-element-library" aria-live="polite"></div>
+
+          <div class="visual-control-grid">
+            <label>Color SVG <input id="visualStickerColor" type="color" value="#ff4f9a"></label>
+            <label>Opacidad <input id="visualStickerOpacity" type="range" min="0" max="100" value="100"></label>
+          </div>
+
+          <div class="visual-toggle-row">
+            <label><input id="visualStickerAnimation" type="checkbox"> Animacion HTML</label>
+          </div>
+        </section>
+
+        <section class="visual-properties-card" id="visualEffectsPanel">
+          <div class="panel-heading small-heading">
+            <div>
+              <p class="eyebrow">Efectos</p>
+              <h2>Premium</h2>
+            </div>
+          </div>
+
+          <div class="visual-frame-grid">
+            <button class="button secondary" type="button" data-visual-effect="shine">Brillos</button>
+            <button class="button secondary" type="button" data-visual-effect="sparkles">Destellos</button>
+            <button class="button secondary" type="button" data-visual-effect="particles">Particulas</button>
+            <button class="button secondary" type="button" data-visual-effect="lights">Luces</button>
+            <button class="button secondary" type="button" data-visual-effect="confetti">Confeti</button>
+            <button class="button secondary" type="button" data-visual-effect="snow">Nieve</button>
+            <button class="button secondary" type="button" data-visual-effect="stars">Estrellas</button>
+            <button class="button secondary" type="button" data-visual-effect="hearts">Corazones</button>
+            <button class="button secondary" type="button" data-visual-effect="bubbles">Burbujas</button>
+            <button class="button secondary" type="button" data-visual-effect="fireworks">Fuegos</button>
+            <button class="button secondary" type="button" data-visual-effect="smoke">Humo</button>
+            <button class="button secondary" type="button" data-visual-effect="magic">Chispas</button>
+          </div>
+
+          <div class="visual-control-grid">
+            <label>Entrada
+              <select id="visualEntranceAnimation">
+                <option value="">Sin entrada</option>
+                <option value="fade-in">Fade In</option>
+                <option value="slide-up">Slide Up</option>
+                <option value="slide-down">Slide Down</option>
+                <option value="zoom-in">Zoom In</option>
+                <option value="bounce">Bounce</option>
+                <option value="flip">Flip</option>
+                <option value="rotate">Rotate</option>
+                <option value="glow-pulse">Glow Pulse</option>
+              </select>
+            </label>
+
+            <label>Continua
+              <select id="visualLoopAnimation">
+                <option value="">Sin continua</option>
+                <option value="float">Flotar</option>
+                <option value="breathe">Respirar</option>
+                <option value="slow-spin">Girar lento</option>
+                <option value="shine">Brillar</option>
+                <option value="blink">Parpadear</option>
+                <option value="swing">Oscilar</option>
+              </select>
+            </label>
+
+            <label>Velocidad <input id="visualAnimationSpeed" type="range" min="1" max="10" value="5"></label>
+            <label>Intensidad <input id="visualAnimationIntensity" type="range" min="1" max="10" value="5"></label>
+            <label>Duracion <input id="visualAnimationDuration" type="number" min="1" max="30" value="4"></label>
+            <label>Luz
+              <select id="visualLightEffect">
+                <option value="">Sin luz</option>
+                <option value="halo">Halo luminoso</option>
+                <option value="side-light">Luz lateral</option>
+                <option value="reflection">Reflejo</option>
+                <option value="magic-glow">Brillo magico</option>
+                <option value="neon">Luz neon</option>
+              </select>
+            </label>
+            <label class="full-field">Texto especial
+              <select id="visualTextEffect">
+                <option value="">Sin efecto</option>
+                <option value="bright">Texto brillante</option>
+                <option value="neon">Neon</option>
+                <option value="multi-shadow">Sombra multiple</option>
+                <option value="glow">Resplandor</option>
+                <option value="gradient">Degradado</option>
+                <option value="typing">Escritura</option>
+                <option value="rainbow">Arcoiris</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="visual-properties-card">
+          <div class="panel-heading small-heading">
+            <div>
+              <p class="eyebrow">Interactivo</p>
+              <h2>Componentes</h2>
+            </div>
+          </div>
+
+          <div class="visual-frame-grid">
+            <button class="button secondary" type="button" data-visual-component="countdown">Cuenta regresiva</button>
+            <button class="button secondary" type="button" data-visual-component="music">Musica</button>
+            <button class="button secondary" type="button" data-visual-component="gallery">Galeria</button>
+            <button class="button secondary" type="button" data-visual-component="map">Mapa</button>
+            <button class="button secondary" type="button" data-visual-component="rsvp">Confirmar</button>
+            <button class="button secondary" type="button" data-visual-component="whatsapp">WhatsApp</button>
+            <button class="button secondary" type="button" data-visual-component="call">Llamar</button>
+            <button class="button secondary" type="button" data-visual-component="location">Como llegar</button>
+          </div>
+
+          <label class="full-field">URL audio / mapa / galeria
+            <input id="visualComponentUrl" type="url" placeholder="https://...">
+          </label>
+
+          <div class="visual-toggle-row">
+            <label><input id="visualAudioAutoplay" type="checkbox"> Autoplay audio</label>
+          </div>
+
+          <label>Tema
+            <select id="visualThemePreset">
+              <option value="">Sin preset</option>
+              <option value="kpop">K-Pop</option>
+              <option value="princess">Princesa</option>
+              <option value="frozen">Frozen</option>
+              <option value="unicorn">Unicornio</option>
+              <option value="football">Futbol</option>
+              <option value="wedding">Boda elegante</option>
+              <option value="business">Empresarial</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="visual-properties-card" id="visualSettingsPanel">
+          <div class="panel-heading small-heading">
+            <div>
+              <p class="eyebrow">Medidas</p>
+              <h2>Posicion</h2>
+            </div>
+          </div>
+
+          <div class="visual-control-grid">
+            <label>X <input id="visualPosX" type="number" step="1"></label>
+            <label>Y <input id="visualPosY" type="number" step="1"></label>
+            <label>Ancho <input id="visualWidth" type="number" min="1" step="1"></label>
+            <label>Alto <input id="visualHeight" type="number" min="1" step="1"></label>
+            <label>Rotacion <input id="visualAngle" type="number" min="-180" max="180" step="1"></label>
+          </div>
+        </section>
+        <section class="visual-properties-card">
+          <div class="panel-heading small-heading">
+            <div>
+              <p class="eyebrow">Capas</p>
+              <h2>Orden</h2>
+            </div>
+          </div>
+          <div id="visualLayersList" class="visual-layers-list" aria-live="polite"></div>
+          <div class="visual-layer-actions">
+            <button class="button secondary" id="visualLayerUpButton" type="button">Subir capa</button>
+            <button class="button secondary" id="visualLayerDownButton" type="button">Bajar capa</button>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+
+
+  </main>
+
+  <div class="share-modal" id="shareInvitationModal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle" hidden>
+    <button class="share-modal-backdrop" type="button" data-share-modal-close aria-label="Cerrar compartir"></button>
+    <div class="share-modal-dialog">
       <section class="share-invitation-card" data-share-section>
         <div class="share-card-header">
           <div>
             <p class="eyebrow">Compartir</p>
-            <h2>Compartir invitación</h2>
+            <h2 id="shareModalTitle">Compartir invitación</h2>
           </div>
-          <button class="button primary native-share-button hidden" type="button" data-share-action="native">Compartir</button>
+          <div class="share-header-actions">
+            <button class="button primary native-share-button hidden" type="button" data-share-action="native">Compartir</button>
+            <button class="button secondary share-modal-close" type="button" data-share-modal-close aria-label="Cerrar">Cerrar</button>
+          </div>
         </div>
 
         <div class="share-url-box">
@@ -399,33 +873,8 @@
           </article>
         </div>
       </section>
-      </div>
-    </aside>
-
-    <section class="live-preview-panel">
-      <div class="preview-toolbar">
-        <div>
-          <p class="eyebrow">Vista previa en vivo</p>
-          <h2 id="previewTitle">Invitación</h2>
-        </div>
-
-        <div class="preview-actions">
-          <button class="button secondary" type="button" data-zoom="50">50%</button>
-          <button class="button secondary active" type="button" data-zoom="75">75%</button>
-          <button class="button secondary" type="button" data-zoom="100">100%</button>
-          <button id="mobilePreviewButton" class="button secondary" type="button">Vista móvil</button>
-          <button id="desktopPreviewButton" class="button secondary active" type="button">Vista desktop</button>
-        </div>
-      </div>
-
-      <div class="preview-stage">
-        <div id="previewDevice" class="preview-device preview-zoom-75 desktop-preview">
-          <iframe id="livePreviewFrame" class="live-preview-frame" title="Vista previa de invitación"></iframe>
-        </div>
-      </div>
-    </section>
-
-  </main>
+    </div>
+  </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <script src="assets/js/data.js"></script>
